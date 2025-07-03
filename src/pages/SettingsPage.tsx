@@ -1,0 +1,373 @@
+import React, { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
+import { 
+  Settings, 
+  User, 
+  Bell, 
+  Shield, 
+  Palette,
+  Globe,
+  Smartphone,
+  CreditCard,
+  Download,
+  Trash2,
+  ChevronRight,
+  Moon,
+  Sun,
+  Camera,
+  Edit
+} from 'lucide-react';
+import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+
+const SettingsPage: React.FC = () => {
+  const [settings, setSettings] = useState({
+    notifications: {
+      pushNotifications: true,
+      emailNotifications: true,
+      budgetAlerts: true,
+      expenseReminders: false,
+      weeklyReports: true
+    },
+    privacy: {
+      faceId: true,
+      touchId: false,
+      autoLock: true,
+      dataSharing: false
+    },
+    preferences: {
+      currency: 'USD',
+      language: 'English',
+      theme: 'light',
+      dateFormat: 'MM/DD/YYYY'
+    }
+  });
+
+  const [profile, setProfile] = useState({
+    name: 'John Doe',
+    email: 'john.doe@example.com',
+    phone: '+1 (555) 123-4567'
+  });
+
+  const updateSetting = (category: string, key: string, value: any) => {
+    setSettings(prev => ({
+      ...prev,
+      [category]: {
+        ...prev[category as keyof typeof prev],
+        [key]: value
+      }
+    }));
+  };
+
+  const currencies = ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'];
+  const languages = ['English', 'Spanish', 'French', 'German', 'Italian'];
+  const themes = ['light', 'dark', 'system'];
+
+  return (
+    <div className="min-h-screen bg-gradient-surface pb-20">
+      {/* Header */}
+      <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
+        <div className="flex items-center justify-between p-6">
+          <div className="flex items-center space-x-4">
+            <img 
+              src={fluxpenseLogo} 
+              alt="FluxPense" 
+              className="w-8 h-8 rounded-lg"
+            />
+            <div>
+              <h1 className="text-xl font-bold text-foreground">Settings</h1>
+              <p className="text-sm text-muted-foreground">Manage your preferences</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="p-6 space-y-6">
+        {/* Profile Section */}
+        <Card className="animate-fade-in-up">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2">
+              <User className="w-5 h-5" />
+              <span>Profile</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center space-x-4 mb-6">
+              <div className="relative">
+                <div className="w-16 h-16 bg-gradient-primary rounded-full flex items-center justify-center text-white text-xl font-bold">
+                  JD
+                </div>
+                <Button
+                  size="sm"
+                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0 bg-primary hover:bg-primary-dark"
+                >
+                  <Camera className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex-1">
+                <h3 className="font-semibold text-foreground">{profile.name}</h3>
+                <p className="text-sm text-muted-foreground">{profile.email}</p>
+                <Button variant="outline" size="sm" className="mt-2">
+                  <Edit className="w-4 h-4 mr-2" />
+                  Edit Profile
+                </Button>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-sm font-medium mb-2 block">Full Name</label>
+                <Input 
+                  value={profile.name}
+                  onChange={(e) => setProfile(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Email</label>
+                <Input 
+                  value={profile.email}
+                  onChange={(e) => setProfile(prev => ({ ...prev, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="text-sm font-medium mb-2 block">Phone</label>
+                <Input 
+                  value={profile.phone}
+                  onChange={(e) => setProfile(prev => ({ ...prev, phone: e.target.value }))}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Notifications */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2">
+              <Bell className="w-5 h-5" />
+              <span>Notifications</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Push Notifications</p>
+                  <p className="text-sm text-muted-foreground">Receive notifications on your device</p>
+                </div>
+                <Switch
+                  checked={settings.notifications.pushNotifications}
+                  onCheckedChange={(checked) => updateSetting('notifications', 'pushNotifications', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Email Notifications</p>
+                  <p className="text-sm text-muted-foreground">Get updates via email</p>
+                </div>
+                <Switch
+                  checked={settings.notifications.emailNotifications}
+                  onCheckedChange={(checked) => updateSetting('notifications', 'emailNotifications', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Budget Alerts</p>
+                  <p className="text-sm text-muted-foreground">Alert when approaching budget limits</p>
+                </div>
+                <Switch
+                  checked={settings.notifications.budgetAlerts}
+                  onCheckedChange={(checked) => updateSetting('notifications', 'budgetAlerts', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Expense Reminders</p>
+                  <p className="text-sm text-muted-foreground">Daily reminders to log expenses</p>
+                </div>
+                <Switch
+                  checked={settings.notifications.expenseReminders}
+                  onCheckedChange={(checked) => updateSetting('notifications', 'expenseReminders', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Weekly Reports</p>
+                  <p className="text-sm text-muted-foreground">Weekly spending summary</p>
+                </div>
+                <Switch
+                  checked={settings.notifications.weeklyReports}
+                  onCheckedChange={(checked) => updateSetting('notifications', 'weeklyReports', checked)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Security & Privacy */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2">
+              <Shield className="w-5 h-5" />
+              <span>Security & Privacy</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Face ID</p>
+                  <p className="text-sm text-muted-foreground">Use Face ID to unlock the app</p>
+                </div>
+                <Switch
+                  checked={settings.privacy.faceId}
+                  onCheckedChange={(checked) => updateSetting('privacy', 'faceId', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Touch ID</p>
+                  <p className="text-sm text-muted-foreground">Use fingerprint authentication</p>
+                </div>
+                <Switch
+                  checked={settings.privacy.touchId}
+                  onCheckedChange={(checked) => updateSetting('privacy', 'touchId', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Auto Lock</p>
+                  <p className="text-sm text-muted-foreground">Lock app when inactive</p>
+                </div>
+                <Switch
+                  checked={settings.privacy.autoLock}
+                  onCheckedChange={(checked) => updateSetting('privacy', 'autoLock', checked)}
+                />
+              </div>
+              
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="font-medium">Data Sharing</p>
+                  <p className="text-sm text-muted-foreground">Share usage data for improvements</p>
+                </div>
+                <Switch
+                  checked={settings.privacy.dataSharing}
+                  onCheckedChange={(checked) => updateSetting('privacy', 'dataSharing', checked)}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Preferences */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center space-x-2">
+              <Palette className="w-5 h-5" />
+              <span>Preferences</span>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-6">
+              <div>
+                <label className="text-sm font-medium mb-3 block">Currency</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {currencies.map((currency) => (
+                    <Button
+                      key={currency}
+                      variant={settings.preferences.currency === currency ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateSetting('preferences', 'currency', currency)}
+                    >
+                      {currency}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-3 block">Language</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {languages.map((language) => (
+                    <Button
+                      key={language}
+                      variant={settings.preferences.language === language ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateSetting('preferences', 'language', language)}
+                    >
+                      {language}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              
+              <div>
+                <label className="text-sm font-medium mb-3 block">Theme</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {themes.map((theme) => (
+                    <Button
+                      key={theme}
+                      variant={settings.preferences.theme === theme ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => updateSetting('preferences', 'theme', theme)}
+                      className="capitalize"
+                    >
+                      {theme === 'light' && <Sun className="w-4 h-4 mr-2" />}
+                      {theme === 'dark' && <Moon className="w-4 h-4 mr-2" />}
+                      {theme === 'system' && <Smartphone className="w-4 h-4 mr-2" />}
+                      {theme}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
+          <CardHeader className="pb-3">
+            <CardTitle>Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center space-x-3">
+                  <Download className="w-5 h-5 text-primary" />
+                  <span>Export Data</span>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              
+              <Button variant="outline" className="w-full justify-between">
+                <div className="flex items-center space-x-3">
+                  <CreditCard className="w-5 h-5 text-primary" />
+                  <span>Manage Subscription</span>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+              
+              <Button variant="outline" className="w-full justify-between text-destructive border-destructive/20 hover:bg-destructive/10">
+                <div className="flex items-center space-x-3">
+                  <Trash2 className="w-5 h-5" />
+                  <span>Delete Account</span>
+                </div>
+                <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default SettingsPage;

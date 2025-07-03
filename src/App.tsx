@@ -13,6 +13,14 @@ import SignupScreen from "./pages/SignupScreen";
 import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
 import OnboardingScreen from "./pages/OnboardingScreen";
 import Dashboard from "./pages/Dashboard";
+import ExpensesPage from "./pages/ExpensesPage";
+import ReportsPage from "./pages/ReportsPage";
+import NotificationsPage from "./pages/NotificationsPage";
+import BillingPage from "./pages/BillingPage";
+import HelpPage from "./pages/HelpPage";
+import TransactionsPage from "./pages/TransactionsPage";
+import SettingsPage from "./pages/SettingsPage";
+import ProfilePage from "./pages/ProfilePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +40,14 @@ const App = () => (
             <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
             <Route path="/onboarding" element={<OnboardingScreen />} />
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/expenses" element={<ExpensesPage />} />
+            <Route path="/reports" element={<ReportsPage />} />
+            <Route path="/notifications" element={<NotificationsPage />} />
+            <Route path="/billing" element={<BillingPage />} />
+            <Route path="/help" element={<HelpPage />} />
+            <Route path="/transactions" element={<TransactionsPage />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

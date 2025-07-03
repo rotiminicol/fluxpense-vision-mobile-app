@@ -7,9 +7,17 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, Camera, FileText, TrendingUp, TrendingDown, 
-  DollarSign, PieChart, Calendar, Settings, User,
-  Scan, Upload, Eye, MoreHorizontal
+  DollarSign, PieChart, Calendar, Bell, User,
+  Scan, Upload, Eye, MoreHorizontal, LogOut, Settings
 } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+} from '@/components/ui/dropdown-menu';
+import BottomNavigation from '@/components/BottomNavigation';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
 
 interface Expense {
@@ -109,7 +117,7 @@ const Dashboard: React.FC = () => {
       </div>
 
       {/* Header */}
-      <div className="relative z-10 bg-white/80 backdrop-blur-lg border-b border-border/50">
+      <div className="relative z-10 bg-card/95 backdrop-blur-xl border-b border-border/50">
         <div className="flex items-center justify-between p-6">
           <div className="flex items-center space-x-4">
             <img 
@@ -119,17 +127,78 @@ const Dashboard: React.FC = () => {
             />
             <div>
               <h1 className="text-xl font-bold text-foreground">FluxPense</h1>
-              <p className="text-sm text-muted-foreground">Welcome back, {user?.name}</p>
+              <p className="text-sm text-muted-foreground">Welcome, {user?.email}</p>
             </div>
           </div>
           
           <div className="flex items-center space-x-2">
-            <Button variant="ghost" size="sm" className="hover:bg-hover">
-              <Settings className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="sm" onClick={logout} className="hover:bg-hover">
-              <User className="w-5 h-5" />
-            </Button>
+            {/* Notifications Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="relative hover:bg-hover">
+                  <Bell className="w-5 h-5" />
+                  <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-xs text-white flex items-center justify-center">
+                    3
+                  </span>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-80 bg-card/95 backdrop-blur-xl">
+                <div className="p-3 border-b">
+                  <h4 className="font-semibold">Notifications</h4>
+                </div>
+                <div className="max-h-64 overflow-y-auto">
+                  <DropdownMenuItem className="flex items-start space-x-3 p-3">
+                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
+                    <div>
+                      <p className="text-sm font-medium">Budget Alert</p>
+                      <p className="text-xs text-muted-foreground">You've used 85% of your monthly budget</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-start space-x-3 p-3">
+                    <div className="w-2 h-2 bg-success rounded-full mt-2"></div>
+                    <div>
+                      <p className="text-sm font-medium">Goal Achieved!</p>
+                      <p className="text-xs text-muted-foreground">You've saved $500 this month</p>
+                    </div>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem className="flex items-start space-x-3 p-3">
+                    <div className="w-2 h-2 bg-warning rounded-full mt-2"></div>
+                    <div>
+                      <p className="text-sm font-medium">Receipt Reminder</p>
+                      <p className="text-xs text-muted-foreground">Don't forget to scan today's receipts</p>
+                    </div>
+                  </DropdownMenuItem>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            {/* Profile Dropdown */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="sm" className="hover:bg-hover">
+                  <User className="w-5 h-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48 bg-card/95 backdrop-blur-xl">
+                <DropdownMenuItem onClick={() => window.location.href = '/profile'}>
+                  <User className="w-4 h-4 mr-2" />
+                  Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.href = '/settings'}>
+                  <Settings className="w-4 h-4 mr-2" />
+                  Settings
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => window.location.href = '/billing'}>
+                  <DollarSign className="w-4 h-4 mr-2" />
+                  Billing
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={logout} className="text-destructive">
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Logout
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </div>
       </div>
@@ -339,33 +408,26 @@ const Dashboard: React.FC = () => {
         </Card>
       </div>
 
-      {/* Floating Action Button */}
-      <div className="floating-action">
-        <Button
-          onClick={() => setShowAddOptions(!showAddOptions)}
-          className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-primary-dark text-white hover:scale-110 transition-all duration-300"
-        >
-          <Plus className={`w-8 h-8 transition-transform duration-300 ${showAddOptions ? 'rotate-45' : ''}`} />
-        </Button>
-        
-        {/* Quick add options */}
-        {showAddOptions && (
-          <div className="absolute bottom-20 right-0 space-y-3 animate-slide-up">
-            <Button
-              onClick={handleScanReceipt}
-              className="w-14 h-14 rounded-full bg-success text-white shadow-medium hover:scale-110 transition-all duration-300"
-            >
-              <Scan className="w-6 h-6" />
-            </Button>
-            <Button
-              onClick={handleManualEntry}
-              className="w-14 h-14 rounded-full bg-secondary text-white shadow-medium hover:scale-110 transition-all duration-300"
-            >
-              <Plus className="w-6 h-6" />
-            </Button>
-          </div>
-        )}
-      </div>
+      {/* Bottom Navigation */}
+      <BottomNavigation onQuickAdd={() => setShowAddOptions(!showAddOptions)} />
+
+      {/* Floating Action Options */}
+      {showAddOptions && (
+        <div className="fixed bottom-24 right-6 space-y-3 animate-slide-up z-50">
+          <Button
+            onClick={handleScanReceipt}
+            className="w-14 h-14 rounded-full bg-success text-white shadow-strong hover:scale-110 transition-all duration-300"
+          >
+            <Scan className="w-6 h-6" />
+          </Button>
+          <Button
+            onClick={handleManualEntry}
+            className="w-14 h-14 rounded-full bg-secondary text-white shadow-strong hover:scale-110 transition-all duration-300"
+          >
+            <Plus className="w-6 h-6" />
+          </Button>
+        </div>
+      )}
     </div>
   );
 };
