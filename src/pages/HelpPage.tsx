@@ -17,6 +17,8 @@ import {
   Send
 } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion, AnimatePresence } from 'framer-motion';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const HelpPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -114,7 +116,7 @@ const HelpPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-surface pb-20">
+    <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
         <div className="flex items-center justify-between p-6">
@@ -131,8 +133,7 @@ const HelpPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <div className="p-6 space-y-6">
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
         {/* Search */}
         <Card className="animate-fade-in-up">
           <CardContent className="p-6">
@@ -186,10 +187,12 @@ const HelpPage: React.FC = () => {
           <CardContent>
             <div className="space-y-4">
               {filteredFaqs.map((faq, index) => (
-                <div
+                <motion.div
                   key={faq.id}
                   className="border border-border rounded-xl overflow-hidden transition-all duration-300"
-                  style={{ animationDelay: `${index * 0.05}s` }}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.1 + index * 0.05, duration: 0.4 }}
                 >
                   <Button
                     variant="ghost"
@@ -200,23 +203,30 @@ const HelpPage: React.FC = () => {
                       <Badge variant="secondary" className="text-xs">
                         {faq.category}
                       </Badge>
-                      <span className="font-medium">{faq.question}</span>
+                      <span className="font-medium text-foreground">{faq.question}</span>
                     </div>
-                    {expandedFaq === faq.id ? (
-                      <ChevronDown className="w-4 h-4 flex-shrink-0" />
-                    ) : (
-                      <ChevronRight className="w-4 h-4 flex-shrink-0" />
-                    )}
+                    <motion.span
+                      animate={{ rotate: expandedFaq === faq.id ? 90 : 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </motion.span>
                   </Button>
-                  
-                  {expandedFaq === faq.id && (
-                    <div className="p-4 pt-0 bg-surface/50 animate-slide-up">
-                      <p className="text-muted-foreground leading-relaxed">
+                  <AnimatePresence initial={false}>
+                    {expandedFaq === faq.id && (
+                      <motion.div
+                        key="faq-content"
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        transition={{ duration: 0.3 }}
+                        className="px-6 pb-4 text-muted-foreground text-sm"
+                      >
                         {faq.answer}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
               ))}
             </div>
           </CardContent>
@@ -303,7 +313,27 @@ const HelpPage: React.FC = () => {
             </form>
           </CardContent>
         </Card>
-      </div>
+      </main>
+      {/* Floating Contact Us Button */}
+      <motion.button
+        className="fixed bottom-28 right-6 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary shadow-strong flex items-center justify-center text-white text-3xl animate-pulse hover:scale-110 focus:scale-105 transition-transform duration-200"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+        style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)' }}
+        aria-label="Contact Us"
+      >
+        <MessageCircle className="w-8 h-8" />
+      </motion.button>
+      {/* Bottom Navigation */}
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
+        className="z-50"
+      >
+        <BottomNavigation onQuickAdd={() => {}} />
+      </motion.div>
     </div>
   );
 };

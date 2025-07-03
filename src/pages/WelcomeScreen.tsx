@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
+import dashboard3dElements from '@/assets/dashboard-3d-elements.png';
 
 const WelcomeScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -28,19 +30,38 @@ const WelcomeScreen: React.FC = () => {
         </Button>
       </div>
 
-      {/* Main content */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center">
-        {/* Logo */}
-        <div className="mb-12 animate-bounce-in">
-          <img 
-            src={fluxpenseLogo} 
-            alt="FluxPense" 
-            className="w-24 h-24 md:w-32 md:h-32 rounded-2xl shadow-medium"
+      {/* Main content with entrance animation */}
+      <motion.div
+        className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 text-center"
+        initial="hidden"
+        animate="visible"
+        variants={{
+          hidden: { opacity: 0, y: 40 },
+          visible: { opacity: 1, y: 0, transition: { staggerChildren: 0.15 } },
+        }}
+      >
+        {/* 3D Illustration Placeholder */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.1 }}
+        >
+          <img
+            src={dashboard3dElements}
+            alt="Finance 3D Illustration"
+            className="w-32 h-32 md:w-44 md:h-44 rounded-2xl shadow-2xl object-contain"
+            style={{ filter: 'drop-shadow(0 8px 32px rgba(31,38,135,0.18))' }}
           />
-        </div>
+        </motion.div>
 
         {/* Welcome content */}
-        <div className="max-w-md mb-16 animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+        <motion.div
+          className="max-w-md mb-16"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.2 }}
+        >
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-6">
             Welcome to <span className="text-gradient">FluxPense</span>
           </h1>
@@ -50,68 +71,81 @@ const WelcomeScreen: React.FC = () => {
           </p>
 
           {/* Feature highlights */}
-          <div className="space-y-4 mb-12">
-            <div className="flex items-center justify-center text-left">
-              <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center mr-4">
+          <div className="grid grid-cols-[auto_1fr] gap-x-2 gap-y-8 mb-20 w-full max-w-md mx-auto">
+            {/* Feature 1 */}
+            <div className="flex items-center justify-center">
+              <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Smart Receipt Scanning</h3>
-                <p className="text-sm text-muted-foreground">AI-powered OCR extraction</p>
-              </div>
             </div>
-
-            <div className="flex items-center justify-center text-left">
-              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center mr-4">
+            <div className="flex flex-col justify-center">
+              <h3 className="font-semibold text-foreground">Smart Receipt Scanning</h3>
+              <p className="text-sm text-muted-foreground">AI-powered OCR extraction</p>
+            </div>
+            {/* Feature 2 */}
+            <div className="flex items-center justify-center">
+              <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                 </svg>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Real-time Analytics</h3>
-                <p className="text-sm text-muted-foreground">Track spending patterns</p>
-              </div>
             </div>
-
-            <div className="flex items-center justify-center text-left">
-              <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center mr-4">
+            <div className="flex flex-col justify-center">
+              <h3 className="font-semibold text-foreground">Real-time Analytics</h3>
+              <p className="text-sm text-muted-foreground">Track spending patterns</p>
+            </div>
+            {/* Feature 3 */}
+            <div className="flex items-center justify-center">
+              <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
                 <svg className="w-6 h-6 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
                 </svg>
               </div>
-              <div>
-                <h3 className="font-semibold text-foreground">Secure & Private</h3>
-                <p className="text-sm text-muted-foreground">Bank-level security</p>
-              </div>
+            </div>
+            <div className="flex flex-col justify-center">
+              <h3 className="font-semibold text-foreground">Secure & Private</h3>
+              <p className="text-sm text-muted-foreground">Bank-level security</p>
             </div>
           </div>
-        </div>
+        </motion.div>
 
-        {/* Action buttons */}
-        <div className="w-full max-w-sm space-y-4 animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-          <Button
-            onClick={() => navigate('/signup')}
-            size="lg"
-            className="w-full primary-button text-lg py-6 rounded-2xl font-semibold"
-          >
-            Get Started
-          </Button>
-          
-          <Button
-            onClick={() => navigate('/login')}
-            variant="outline"
-            size="lg"
-            className="w-full text-lg py-6 rounded-2xl font-medium border-2 hover:bg-hover"
-          >
-            I Already Have an Account
-          </Button>
-        </div>
+        {/* Action buttons with animation */}
+        <motion.div
+          className="w-full max-w-sm space-y-4"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.4 }}
+        >
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.97, boxShadow: '0 4px 24px #00b4d8' }}>
+            <Button
+              onClick={() => navigate('/signup')}
+              size="lg"
+              className="w-full primary-button text-lg py-6 rounded-2xl font-semibold shadow-strong"
+            >
+              Get Started
+            </Button>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={() => navigate('/login')}
+              variant="outline"
+              size="lg"
+              className="w-full text-lg py-6 rounded-2xl font-medium border-2 hover:bg-hover"
+            >
+              I Already Have an Account
+            </Button>
+          </motion.div>
+        </motion.div>
 
         {/* Trust indicators */}
-        <div className="mt-12 animate-fade-in-up" style={{ animationDelay: '0.6s' }}>
-          <p className="text-sm text-muted-foreground mb-4">Trusted by thousands of users</p>
+        <motion.div
+          className="mt-20 mb-4 flex flex-col items-center justify-center"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.6 }}
+        >
           <div className="flex items-center justify-center space-x-6 text-muted-foreground">
             <div className="flex items-center">
               <svg className="w-5 h-5 text-warning mr-1" fill="currentColor" viewBox="0 0 20 20">
@@ -121,8 +155,8 @@ const WelcomeScreen: React.FC = () => {
             </div>
             <div className="text-sm">256-bit Encryption</div>
           </div>
-        </div>
-      </div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

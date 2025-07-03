@@ -20,10 +20,18 @@ import {
 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('overview');
+  const [editMode, setEditMode] = useState(false);
+  const [profileData, setProfileData] = useState({
+    name: user?.name || '',
+    email: user?.email || '',
+  });
+  const [saveSuccess, setSaveSuccess] = useState(false);
   
   const stats = {
     totalExpenses: 3425.50,
@@ -107,8 +115,14 @@ const ProfilePage: React.FC = () => {
     { id: 'activity', label: 'Activity' }
   ];
 
+  const handleSave = () => {
+    setSaveSuccess(true);
+    setTimeout(() => setSaveSuccess(false), 1500);
+    setEditMode(false);
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-surface pb-20">
+    <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
         <div className="flex items-center justify-between p-6">
@@ -134,39 +148,99 @@ const ProfilePage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <div className="p-6 space-y-6">
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
         {/* Profile Header */}
-        <Card className="animate-fade-in-up">
-          <CardContent className="p-6">
-            <div className="flex items-center space-x-4">
-              <div className="relative">
-                <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center text-white text-2xl font-bold">
-                  {user?.name?.charAt(0) || 'U'}
-                </div>
-                <Button
-                  size="sm"
-                  className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0 bg-primary hover:bg-primary-dark"
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <Card>
+            <CardContent className="p-6">
+              <div className="flex items-center space-x-4">
+                <motion.div
+                  className="relative"
+                  initial={{ scale: 0.9, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.5, delay: 0.2 }}
                 >
-                  <Camera className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-foreground">{user?.name || 'User'}</h2>
-                <p className="text-muted-foreground">{user?.email}</p>
-                <div className="flex items-center space-x-4 mt-2">
-                  <div className="flex items-center space-x-1 text-sm text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
-                    <span>Member since {stats.memberSince}</span>
+                  <div className="w-20 h-20 bg-gradient-primary rounded-full flex items-center justify-center text-white text-2xl font-bold shadow-2xl border-4 border-white/20">
+                    {profileData.name?.charAt(0) || 'U'}
                   </div>
-                  <Badge variant="secondary" className="text-xs">
-                    Pro User
-                  </Badge>
+                  <Button
+                    size="sm"
+                    className="absolute -bottom-1 -right-1 w-8 h-8 rounded-full p-0 bg-primary hover:bg-primary-dark"
+                  >
+                    <Camera className="w-4 h-4" />
+                  </Button>
+                </motion.div>
+                <div className="flex-1">
+                  {editMode ? (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3 }}
+                      className="space-y-2"
+                    >
+                      <input
+                        className="w-full rounded-xl border px-3 py-2 text-lg font-bold text-foreground bg-white/80"
+                        value={profileData.name}
+                        onChange={e => setProfileData(p => ({ ...p, name: e.target.value }))}
+                      />
+                      <input
+                        className="w-full rounded-xl border px-3 py-2 text-muted-foreground bg-white/80"
+                        value={profileData.email}
+                        onChange={e => setProfileData(p => ({ ...p, email: e.target.value }))}
+                      />
+                    </motion.div>
+                  ) : (
+                    <>
+                      <h2 className="text-2xl font-bold text-foreground">{profileData.name || 'User'}</h2>
+                      <p className="text-muted-foreground">{profileData.email}</p>
+                    </>
+                  )}
+                  <div className="flex items-center space-x-4 mt-2">
+                    <div className="flex items-center space-x-1 text-sm text-muted-foreground">
+                      <Calendar className="w-4 h-4" />
+                      <span>Member since {stats.memberSince}</span>
+                    </div>
+                    <Badge variant="secondary" className="text-xs">
+                      Pro User
+                    </Badge>
+                  </div>
                 </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <div className="flex items-center space-x-2 mt-4">
+                {editMode ? (
+                  <motion.button
+                    className="primary-button px-6 py-2 rounded-xl font-semibold text-white bg-gradient-to-br from-primary to-secondary shadow-lg"
+                    whileHover={{ scale: 1.04 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleSave}
+                  >
+                    Save
+                  </motion.button>
+                ) : (
+                  <Button variant="outline" size="sm" onClick={() => setEditMode(true)}>
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Profile
+                  </Button>
+                )}
+                {saveSuccess && (
+                  <motion.span
+                    className="ml-2 text-success font-semibold"
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.8 }}
+                    transition={{ duration: 0.4 }}
+                  >
+                    Saved!
+                  </motion.span>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
 
         {/* Tabs */}
         <div className="flex space-x-2">
@@ -369,7 +443,16 @@ const ProfilePage: React.FC = () => {
             </CardContent>
           </Card>
         )}
-      </div>
+      </main>
+      {/* Bottom Navigation */}
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
+        className="z-50"
+      >
+        <BottomNavigation onQuickAdd={() => {}} />
+      </motion.div>
     </div>
   );
 };

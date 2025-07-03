@@ -16,6 +16,8 @@ import {
   Receipt
 } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const NotificationsPage: React.FC = () => {
   const [notifications, setNotifications] = useState([
@@ -100,7 +102,7 @@ const NotificationsPage: React.FC = () => {
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <div className="min-h-screen bg-gradient-surface pb-20">
+    <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
         <div className="flex items-center justify-between p-6">
@@ -125,8 +127,7 @@ const NotificationsPage: React.FC = () => {
           )}
         </div>
       </div>
-
-      <div className="p-6 space-y-6">
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
         {/* Notification Settings */}
         <Card className="animate-fade-in-up">
           <CardHeader className="pb-3">
@@ -206,85 +207,53 @@ const NotificationsPage: React.FC = () => {
         </Card>
 
         {/* Notifications List */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: '0.1s' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2">
-              <Bell className="w-5 h-5" />
-              <span>Recent Notifications</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {notifications.length === 0 ? (
-                <div className="text-center py-8">
-                  <BellOff className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-                  <p className="text-muted-foreground">No notifications yet</p>
-                </div>
-              ) : (
-                notifications.map((notification, index) => (
-                  <div
-                    key={notification.id}
-                    className={`flex items-start space-x-4 p-4 rounded-xl transition-all duration-300 hover:bg-hover ${
-                      !notification.read ? 'bg-primary/5 border border-primary/20' : 'bg-surface'
-                    }`}
-                    style={{ animationDelay: `${index * 0.1}s` }}
-                  >
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                      notification.type === 'budget' ? 'bg-warning/10' :
-                      notification.type === 'expense' ? 'bg-primary/10' :
-                      notification.type === 'reminder' ? 'bg-info/10' :
-                      notification.type === 'success' ? 'bg-success/10' :
-                      'bg-secondary/10'
-                    }`}>
-                      <notification.icon className={`w-5 h-5 ${notification.color}`} />
-                    </div>
-                    
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center space-x-2">
-                            <p className="font-semibold text-foreground">{notification.title}</p>
-                            {!notification.read && (
-                              <Badge variant="secondary" className="h-5 px-2 text-xs">New</Badge>
-                            )}
-                          </div>
-                          <p className="text-sm text-muted-foreground mt-1">
-                            {notification.message}
-                          </p>
-                          <p className="text-xs text-muted-foreground mt-2">
-                            {notification.time}
-                          </p>
-                        </div>
-                        
-                        <div className="flex space-x-1 ml-4">
-                          {!notification.read && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => markAsRead(notification.id)}
-                              className="h-8 w-8 p-0"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => deleteNotification(notification.id)}
-                            className="h-8 w-8 p-0 text-destructive hover:bg-destructive/10"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
+        <div className="space-y-4 mt-8">
+          {notifications.map((notif, idx) => (
+            <motion.div
+              key={notif.id}
+              initial={{ opacity: 0, x: -40 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: 0.1 + idx * 0.08, duration: 0.5, type: 'spring' }}
+            >
+              <Card className="overflow-hidden">
+                <CardHeader className="flex flex-row items-center justify-between pb-2">
+                  <div className="flex items-center space-x-3">
+                    <notif.icon className={`w-6 h-6 ${notif.color}`} />
+                    <span className="font-semibold text-foreground">{notif.title}</span>
+                    {!notif.read && (
+                      <span className="ml-2 w-3 h-3 rounded-full bg-primary animate-pulse" />
+                    )}
                   </div>
-                ))
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                  <div className="flex items-center space-x-2">
+                    {!notif.read && (
+                      <Badge variant="secondary" className="animate-pulse">Unread</Badge>
+                    )}
+                    <Button variant="ghost" size="sm" onClick={() => markAsRead(notif.id)}>
+                      Mark Read
+                    </Button>
+                    <Button variant="ghost" size="sm" onClick={() => deleteNotification(notif.id)}>
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pb-3">
+                  <div className="text-muted-foreground mb-1">{notif.message}</div>
+                  <div className="text-xs text-muted-foreground">{notif.time}</div>
+                </CardContent>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+      </main>
+      {/* Bottom Navigation */}
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
+        className="z-50"
+      >
+        <BottomNavigation onQuickAdd={() => {}} />
+      </motion.div>
     </div>
   );
 };

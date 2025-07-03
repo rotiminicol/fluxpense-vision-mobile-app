@@ -12,9 +12,12 @@ import {
   Download,
   Share,
   Target,
-  DollarSign
+  DollarSign,
+  Plus
 } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const ReportsPage: React.FC = () => {
   const [selectedPeriod, setSelectedPeriod] = useState('thisMonth');
@@ -41,7 +44,7 @@ const ReportsPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-surface pb-20">
+    <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
         <div className="flex items-center justify-between p-6">
@@ -67,10 +70,14 @@ const ReportsPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <div className="p-6 space-y-6">
-        {/* Period Selector */}
-        <div className="flex space-x-2 overflow-x-auto pb-2">
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
+        {/* Animated Period Selector */}
+        <motion.div
+          className="flex space-x-2 overflow-x-auto pb-2 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           {periods.map((period) => (
             <Button
               key={period.id}
@@ -82,10 +89,14 @@ const ReportsPage: React.FC = () => {
               {period.label}
             </Button>
           ))}
-        </div>
-
+        </motion.div>
         {/* Key Metrics */}
-        <div className="grid grid-cols-2 gap-4">
+        <motion.div
+          className="grid grid-cols-2 gap-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
           <Card className="animate-fade-in-up">
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -121,92 +132,101 @@ const ReportsPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-
+        </motion.div>
         {/* Monthly Trend */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span>Monthly Trend</span>
-              <BarChart3 className="w-5 h-5 text-primary" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {monthlyTrends.map((trend, index) => (
-                <div key={trend.month} className="space-y-2">
-                  <div className="flex justify-between text-sm">
-                    <span className="font-medium">{trend.month}</span>
-                    <span className="text-muted-foreground">
-                      Net: ${(trend.income - trend.expenses).toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex items-center space-x-2">
-                      <div className="w-full bg-expense/20 rounded-full h-2">
-                        <div 
-                          className="bg-expense rounded-full h-2 transition-all duration-500"
-                          style={{ 
-                            width: `${(trend.expenses / trend.income) * 100}%`,
-                            animationDelay: `${index * 0.1}s`
-                          }}
-                        />
-                      </div>
-                      <span className="text-xs text-expense font-medium">
-                        ${trend.expenses}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card className="animate-fade-in-up" style={{ animationDelay: '0.2s' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between">
+                <span>Monthly Trend</span>
+                <BarChart3 className="w-5 h-5 text-primary" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {monthlyTrends.map((trend, index) => (
+                  <div key={trend.month} className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="font-medium">{trend.month}</span>
+                      <span className="text-muted-foreground">
+                        Net: ${(trend.income - trend.expenses).toLocaleString()}
                       </span>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-full bg-income/20 rounded-full h-2">
-                        <div 
-                          className="bg-income rounded-full h-2 transition-all duration-500"
-                          style={{ width: '100%', animationDelay: `${index * 0.1}s` }}
-                        />
+                    <div className="space-y-1">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-full bg-expense/20 rounded-full h-2">
+                          <div 
+                            className="bg-expense rounded-full h-2 transition-all duration-500"
+                            style={{ 
+                              width: `${(trend.expenses / trend.income) * 100}%`,
+                              animationDelay: `${index * 0.1}s`
+                            }}
+                          />
+                        </div>
+                        <span className="text-xs text-expense font-medium">
+                          ${trend.expenses}
+                        </span>
                       </div>
-                      <span className="text-xs text-income font-medium">
-                        ${trend.income}
-                      </span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-full bg-income/20 rounded-full h-2">
+                          <div 
+                            className="bg-income rounded-full h-2 transition-all duration-500"
+                            style={{ width: '100%', animationDelay: `${index * 0.1}s` }}
+                          />
+                        </div>
+                        <span className="text-xs text-income font-medium">
+                          ${trend.income}
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
         {/* Category Breakdown */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <span>Spending by Category</span>
-              <PieChart className="w-5 h-5 text-primary" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {categoryBreakdown.map((item, index) => (
-                <div key={item.category} className="space-y-2">
-                  <div className="flex justify-between items-center">
-                    <span className="font-medium text-sm">{item.category}</span>
-                    <div className="text-right">
-                      <p className="font-bold text-expense">${item.amount}</p>
-                      <p className="text-xs text-muted-foreground">{item.percentage}%</p>
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+        >
+          <Card className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center justify-between">
+                <span>Spending by Category</span>
+                <PieChart className="w-5 h-5 text-primary" />
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {categoryBreakdown.map((item, index) => (
+                  <div key={item.category} className="space-y-2">
+                    <div className="flex justify-between items-center">
+                      <span className="font-medium text-sm">{item.category}</span>
+                      <div className="text-right">
+                        <p className="font-bold text-expense">${item.amount}</p>
+                        <p className="text-xs text-muted-foreground">{item.percentage}%</p>
+                      </div>
                     </div>
+                    <Progress 
+                      value={item.percentage} 
+                      className="h-2"
+                      style={{ 
+                        animationDelay: `${index * 0.1 + 0.5}s`,
+                        animation: 'scale-in 0.5s ease-out forwards'
+                      }}
+                    />
                   </div>
-                  <Progress 
-                    value={item.percentage} 
-                    className="h-2"
-                    style={{ 
-                      animationDelay: `${index * 0.1 + 0.5}s`,
-                      animation: 'scale-in 0.5s ease-out forwards'
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
         {/* Budget Performance */}
         <Card className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
           <CardHeader className="pb-3">
@@ -259,7 +279,34 @@ const ReportsPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
+      {/* Floating Action Button (FAB) */}
+      <motion.button
+        onClick={() => {}}
+        className="fixed bottom-24 right-6 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary shadow-strong flex items-center justify-center text-white text-3xl hover:scale-110 focus:scale-105 transition-transform duration-200 group"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+        style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)' }}
+        aria-label="Add Expense"
+      >
+        <motion.span
+          className="inline-block"
+          animate={{ rotate: [0, 90, 0] }}
+          transition={{ repeat: Infinity, duration: 2, ease: 'easeInOut' }}
+        >
+          <Plus className="w-8 h-8" />
+        </motion.span>
+      </motion.button>
+      {/* Bottom Navigation */}
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
+        className="z-50"
+      >
+        <BottomNavigation onQuickAdd={() => {}} />
+      </motion.div>
     </div>
   );
 };

@@ -13,6 +13,8 @@ import {
   Download
 } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const BillingPage: React.FC = () => {
   const plans = [
@@ -100,7 +102,7 @@ const BillingPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-surface pb-20">
+    <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
         <div className="flex items-center justify-between p-6">
@@ -117,46 +119,50 @@ const BillingPage: React.FC = () => {
           </div>
         </div>
       </div>
-
-      <div className="p-6 space-y-6">
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
         {/* Current Plan */}
-        <Card className="animate-fade-in-up">
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center space-x-2">
-              <CreditCard className="w-5 h-5" />
-              <span>Current Plan</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 bg-gradient-primary rounded-xl text-white">
-              <div>
-                <div className="flex items-center space-x-2">
-                  <Shield className="w-6 h-6" />
-                  <h3 className="text-xl font-bold">Free Plan</h3>
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6 }}
+        >
+          <Card className="animate-fade-in-up">
+            <CardHeader className="pb-3">
+              <CardTitle className="flex items-center space-x-2">
+                <CreditCard className="w-5 h-5" />
+                <span>Current Plan</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center justify-between p-4 bg-gradient-primary rounded-xl text-white">
+                <div>
+                  <div className="flex items-center space-x-2">
+                    <Shield className="w-6 h-6" />
+                    <h3 className="text-xl font-bold">Free Plan</h3>
+                  </div>
+                  <p className="text-white/80 mt-1">Perfect for getting started</p>
+                  <p className="text-sm text-white/60 mt-2">
+                    23 of 50 expenses used this month
+                  </p>
                 </div>
-                <p className="text-white/80 mt-1">Perfect for getting started</p>
-                <p className="text-sm text-white/60 mt-2">
-                  23 of 50 expenses used this month
-                </p>
+                <Button variant="secondary" size="sm">
+                  Upgrade Now
+                </Button>
               </div>
-              <Button variant="secondary" size="sm">
-                Upgrade Now
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
+            </CardContent>
+          </Card>
+        </motion.div>
         {/* Available Plans */}
-        <div className="space-y-4">
+        <div className="space-y-4 mt-8">
           <h2 className="text-lg font-bold text-foreground">Choose Your Plan</h2>
-          
           {plans.map((plan, index) => (
-            <Card 
-              key={plan.id} 
-              className={`animate-fade-in-up transition-all duration-300 hover:shadow-medium ${
-                plan.recommended ? 'border-primary shadow-primary/20' : ''
-              } ${plan.current ? 'bg-primary/5 border-primary' : ''}`}
-              style={{ animationDelay: `${index * 0.1}s` }}
+            <motion.div
+              key={plan.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.5, delay: 0.1 + index * 0.1, type: 'spring' }}
+              className={`transition-all duration-300 hover:shadow-2xl ${plan.recommended ? 'border-primary shadow-primary/20' : ''} ${plan.current ? 'bg-primary/5 border-primary' : ''}`}
+              style={{ perspective: 1000 }}
             >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between">
@@ -223,72 +229,39 @@ const BillingPage: React.FC = () => {
                   </div>
                 </div>
               </CardContent>
-            </Card>
+            </motion.div>
           ))}
         </div>
-
-        {/* Billing History */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <Calendar className="w-5 h-5" />
-                <span>Billing History</span>
-              </div>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {billingHistory.map((bill) => (
-                <div key={bill.id} className="flex items-center justify-between p-4 bg-surface rounded-xl">
-                  <div>
-                    <p className="font-medium text-foreground">{bill.description}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {new Date(bill.date).toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-foreground">{bill.amount}</p>
-                    <Badge 
-                      variant={bill.status === 'paid' ? 'default' : 'secondary'}
-                      className="text-xs"
-                    >
-                      {bill.status}
-                    </Badge>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Payment Method */}
-        <Card className="animate-fade-in-up" style={{ animationDelay: '0.4s' }}>
-          <CardHeader className="pb-3">
-            <CardTitle>Payment Method</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between p-4 border border-border rounded-xl">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center">
-                  <CreditCard className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-medium">•••• •••• •••• 4242</p>
-                  <p className="text-sm text-muted-foreground">Expires 12/25</p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm">
-                Update
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+        {/* Add New Card Button */}
+        <motion.button
+          className="w-full mt-8 py-4 rounded-2xl bg-gradient-to-br from-primary to-secondary text-white font-semibold text-lg shadow-2xl hover:scale-105 focus:scale-100 transition-transform duration-200"
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+          style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)' }}
+        >
+          + Add New Card
+        </motion.button>
+        {/* Loading animation for transactions */}
+        <motion.div
+          className="flex items-center justify-center mt-8"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.2, duration: 0.5 }}
+        >
+          <span className="inline-block w-6 h-6 border-4 border-primary border-t-transparent rounded-full animate-spin"></span>
+          <span className="ml-3 text-muted-foreground">Loading transactions...</span>
+        </motion.div>
+      </main>
+      {/* Bottom Navigation */}
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
+        className="z-50"
+      >
+        <BottomNavigation onQuickAdd={() => {}} />
+      </motion.div>
     </div>
   );
 };

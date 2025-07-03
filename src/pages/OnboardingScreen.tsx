@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,6 +9,13 @@ import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { ArrowLeft, ArrowRight, CheckCircle } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { Swiper, SwiperSlide } from 'swiper/react';
+import 'swiper/css';
+import { motion } from 'framer-motion';
+import receiptScanning3d from '@/assets/receipt-scanning-3d.png';
+import dashboard3dElements from '@/assets/dashboard-3d-elements.png';
+import onboarding3dIllustration from '@/assets/onboarding-3d-illustration.png';
+import type { Swiper as SwiperType } from 'swiper';
 
 interface OnboardingData {
   monthlyIncome: string;
@@ -23,12 +30,79 @@ interface OnboardingData {
   };
 }
 
+const onboardingSlides = [
+  {
+    type: 'intro',
+    title: "Scan Receipts Instantly",
+    desc: "Snap a photo and let AI extract your expenses in seconds.",
+    illustration: receiptScanning3d,
+  },
+  {
+    type: 'intro',
+    title: "Visualize Your Spending",
+    desc: "Get real-time analytics and insights with beautiful charts.",
+    illustration: dashboard3dElements,
+  },
+  {
+    type: 'intro',
+    title: "Stay in Control",
+    desc: "Set budgets, track goals, and receive smart reminders.",
+    illustration: onboarding3dIllustration,
+  },
+  {
+    type: 'currency',
+    title: "Choose Your Main Currency",
+    desc: "Select the currency you use most often.",
+    illustration: dashboard3dElements,
+  },
+  {
+    type: 'categories',
+    title: "Pick Your Top Categories",
+    desc: "What do you spend on most? Select a few to personalize your dashboard.",
+    illustration: receiptScanning3d,
+  },
+  {
+    type: 'goals',
+    title: "Set Your First Financial Goal",
+    desc: "Choose a goal to start tracking your progress.",
+    illustration: onboarding3dIllustration,
+  },
+];
+
+// Tips and badges for steps 1-3
+const onboardingTips = [
+  {
+    tip: "No manual entry needed!",
+    badge: "AI Powered",
+    badgeColor: "bg-primary/90 text-white",
+    icon: (
+      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>
+    )
+  },
+  {
+    tip: "See your spending at a glance!",
+    badge: "Instant Charts",
+    badgeColor: "bg-success/90 text-white",
+    icon: (
+      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M11 19V6a1 1 0 0 1 2 0v13m-7-7v7a1 1 0 0 0 2 0v-7m10 4v3a1 1 0 0 0 2 0v-3" /></svg>
+    )
+  },
+  {
+    tip: "Stay on top of your goals!",
+    badge: "Smart Reminders",
+    badgeColor: "bg-warning/90 text-white",
+    icon: (
+      <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16z" /></svg>
+    )
+  },
+];
+
 const OnboardingScreen: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { completeOnboarding } = useAuth();
-  
-  const [currentStep, setCurrentStep] = useState(1);
+  const [swiperIndex, setSwiperIndex] = useState(0);
+  const swiperRef = useRef<SwiperType | null>(null);
   const [data, setData] = useState<OnboardingData>({
     monthlyIncome: '',
     monthlyBudget: '',
@@ -43,7 +117,7 @@ const OnboardingScreen: React.FC = () => {
   });
 
   const totalSteps = 6;
-  const progressPercentage = (currentStep / totalSteps) * 100;
+  const progressPercentage = (swiperIndex / totalSteps) * 100;
 
   const categoryOptions = [
     '🍔 Food & Dining', '⛽ Transportation', '🛍️ Shopping', '🏠 Bills & Utilities',
@@ -67,16 +141,16 @@ const OnboardingScreen: React.FC = () => {
   ];
 
   const handleNext = () => {
-    if (currentStep < totalSteps) {
-      setCurrentStep(currentStep + 1);
+    if (swiperIndex < totalSteps - 1) {
+      setSwiperIndex(swiperIndex + 1);
     } else {
       handleComplete();
     }
   };
 
   const handleBack = () => {
-    if (currentStep > 1) {
-      setCurrentStep(currentStep - 1);
+    if (swiperIndex > 0) {
+      setSwiperIndex(swiperIndex - 1);
     }
   };
 
@@ -108,224 +182,12 @@ const OnboardingScreen: React.FC = () => {
     }));
   };
 
-  const renderStep = () => {
-    switch (currentStep) {
-      case 1:
-        return (
-          <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-4">What's your monthly income?</h2>
-            <p className="text-muted-foreground mb-8">This helps us create a personalized budget for you</p>
-            
-            <div className="space-y-4">
-              <div className="relative">
-                <Input
-                  type="number"
-                  placeholder="5000"
-                  value={data.monthlyIncome}
-                  onChange={(e) => setData(prev => ({ ...prev, monthlyIncome: e.target.value }))}
-                  className="h-14 text-lg text-center border-2 rounded-2xl"
-                />
-                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-lg text-muted-foreground">
-                  {currencyOptions.find(c => c.code === data.currency)?.symbol}
-                </span>
-              </div>
-              <p className="text-sm text-muted-foreground">Don't worry, you can change this later</p>
-            </div>
-          </div>
-        );
-
-      case 2:
-        return (
-          <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-4">Set your monthly budget</h2>
-            <p className="text-muted-foreground mb-8">How much do you want to spend each month?</p>
-            
-            <div className="space-y-4">
-              <div className="relative">
-                <Input
-                  type="number"
-                  placeholder="3000"
-                  value={data.monthlyBudget}
-                  onChange={(e) => setData(prev => ({ ...prev, monthlyBudget: e.target.value }))}
-                  className="h-14 text-lg text-center border-2 rounded-2xl"
-                />
-                <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-lg text-muted-foreground">
-                  {currencyOptions.find(c => c.code === data.currency)?.symbol}
-                </span>
-              </div>
-              {data.monthlyIncome && data.monthlyBudget && (
-                <p className="text-sm text-muted-foreground">
-                  This leaves {currencyOptions.find(c => c.code === data.currency)?.symbol}
-                  {(parseFloat(data.monthlyIncome) - parseFloat(data.monthlyBudget)).toLocaleString()} for savings
-                </p>
-              )}
-            </div>
-          </div>
-        );
-
-      case 3:
-        return (
-          <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 bg-warning/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-warning" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-4">Choose your expense categories</h2>
-            <p className="text-muted-foreground mb-8">Select the categories you spend money on most often</p>
-            
-            <div className="grid grid-cols-2 gap-3">
-              {categoryOptions.map((category) => (
-                <Badge
-                  key={category}
-                  variant={data.categories.includes(category) ? "default" : "outline"}
-                  className={`p-3 cursor-pointer transition-all hover:scale-105 ${
-                    data.categories.includes(category)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  }`}
-                  onClick={() => toggleCategory(category)}
-                >
-                  {category}
-                </Badge>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Selected {data.categories.length} categories
-            </p>
-          </div>
-        );
-
-      case 4:
-        return (
-          <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 bg-secondary/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-4">Select your currency</h2>
-            <p className="text-muted-foreground mb-8">Choose your preferred currency for tracking expenses</p>
-            
-            <div className="grid grid-cols-2 gap-3">
-              {currencyOptions.map((currency) => (
-                <div
-                  key={currency.code}
-                  className={`p-4 border-2 rounded-xl cursor-pointer transition-all hover:scale-105 ${
-                    data.currency === currency.code
-                      ? 'border-primary bg-primary/5'
-                      : 'border-border hover:border-ring'
-                  }`}
-                  onClick={() => setData(prev => ({ ...prev, currency: currency.code }))}
-                >
-                  <div className="text-2xl font-bold">{currency.symbol}</div>
-                  <div className="font-medium">{currency.code}</div>
-                  <div className="text-sm text-muted-foreground">{currency.name}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        );
-
-      case 5:
-        return (
-          <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 bg-investment/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10 text-investment" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-              </svg>
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-4">What are your financial goals?</h2>
-            <p className="text-muted-foreground mb-8">Select goals to help us track your progress</p>
-            
-            <div className="grid grid-cols-1 gap-3">
-              {goalOptions.map((goal) => (
-                <Badge
-                  key={goal}
-                  variant={data.goals.includes(goal) ? "default" : "outline"}
-                  className={`p-4 cursor-pointer transition-all hover:scale-[1.02] text-left ${
-                    data.goals.includes(goal)
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-muted'
-                  }`}
-                  onClick={() => toggleGoal(goal)}
-                >
-                  {goal}
-                </Badge>
-              ))}
-            </div>
-            <p className="text-sm text-muted-foreground mt-4">
-              Selected {data.goals.length} goals
-            </p>
-          </div>
-        );
-
-      case 6:
-        return (
-          <div className="text-center animate-fade-in-up">
-            <div className="w-20 h-20 bg-success/10 rounded-full flex items-center justify-center mx-auto mb-6">
-              <CheckCircle className="w-10 h-10 text-success" />
-            </div>
-            <h2 className="text-2xl font-bold text-foreground mb-4">You're all set!</h2>
-            <p className="text-muted-foreground mb-8">Your FluxPense account is ready to help you track expenses</p>
-            
-            <div className="space-y-6">
-              <div className="bg-muted/30 rounded-2xl p-6 text-left">
-                <h3 className="font-semibold text-foreground mb-4">Your Setup Summary:</h3>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Monthly Income:</span>
-                    <span className="font-medium">
-                      {currencyOptions.find(c => c.code === data.currency)?.symbol}
-                      {data.monthlyIncome ? parseFloat(data.monthlyIncome).toLocaleString() : '0'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Monthly Budget:</span>
-                    <span className="font-medium">
-                      {currencyOptions.find(c => c.code === data.currency)?.symbol}
-                      {data.monthlyBudget ? parseFloat(data.monthlyBudget).toLocaleString() : '0'}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Categories:</span>
-                    <span className="font-medium">{data.categories.length} selected</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Goals:</span>
-                    <span className="font-medium">{data.goals.length} selected</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Currency:</span>
-                    <span className="font-medium">{data.currency}</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="bg-gradient-to-r from-primary/5 to-success/5 rounded-2xl p-6">
-                <h3 className="font-semibold text-foreground mb-2">Ready to start tracking!</h3>
-                <p className="text-sm text-muted-foreground">
-                  Take a photo of your first receipt or manually add an expense to get started.
-                </p>
-              </div>
-            </div>
-          </div>
-        );
-
-      default:
-        return null;
+  // Sync Swiper UI with swiperIndex
+  useEffect(() => {
+    if (swiperRef.current) {
+      swiperRef.current.slideTo(swiperIndex);
     }
-  };
+  }, [swiperIndex]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-surface to-primary/5 flex flex-col relative overflow-hidden">
@@ -338,7 +200,7 @@ const OnboardingScreen: React.FC = () => {
       {/* Header */}
       <div className="relative z-10 flex items-center justify-between p-6">
         <div className="flex items-center">
-          {currentStep > 1 && (
+          {swiperIndex > 0 && (
             <Button
               variant="ghost"
               size="sm"
@@ -357,7 +219,7 @@ const OnboardingScreen: React.FC = () => {
         </div>
         
         <div className="text-sm text-muted-foreground">
-          Step {currentStep} of {totalSteps}
+          Step {swiperIndex + 1} of {totalSteps}
         </div>
       </div>
 
@@ -367,45 +229,161 @@ const OnboardingScreen: React.FC = () => {
       </div>
 
       {/* Main content */}
-      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-6">
-        <div className="w-full max-w-md">
-          {renderStep()}
-        </div>
-
-        {/* Navigation buttons */}
-        <div className="w-full max-w-md mt-12 animate-fade-in-up" style={{ animationDelay: '0.3s' }}>
-          <Button
-            onClick={handleNext}
-            className="w-full primary-button text-lg py-6 rounded-2xl font-semibold"
-            disabled={
-              (currentStep === 1 && !data.monthlyIncome) ||
-              (currentStep === 2 && !data.monthlyBudget) ||
-              (currentStep === 3 && data.categories.length === 0)
-            }
+      <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6 pb-6 w-full min-h-[70vh]">
+        <motion.div
+          className="w-full max-w-md mx-auto"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7 }}
+        >
+          {/* Swiper for onboarding slides */}
+          <Swiper
+            spaceBetween={32}
+            slidesPerView={1}
+            onSlideChange={(swiper) => setSwiperIndex(swiper.activeIndex)}
+            onSwiper={(swiper) => (swiperRef.current = swiper)}
+            className="mb-8"
           >
-            {currentStep === totalSteps ? (
-              <>
-                Complete Setup
-                <CheckCircle className="w-5 h-5 ml-2" />
-              </>
-            ) : (
-              <>
-                Continue
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </>
-            )}
-          </Button>
-
-          {currentStep < totalSteps && (
+            {onboardingSlides.map((slide, idx) => (
+              <SwiperSlide key={slide.title}>
+                <motion.div
+                  className={`flex flex-col items-center text-center justify-center min-h-[75vh] ${slide.type === 'intro' ? 'py-12' : ''}`}
+                  style={slide.type === 'intro' ? { minHeight: '75vh' } : {}}
+                  initial={{ opacity: 0, y: 40 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.1 }}
+                >
+                  {/* Illustration with background shape and floating badge for steps 1-3 */}
+                  {slide.type === 'intro' ? (
+                    <div className="relative flex flex-col items-center w-full mb-8">
+                      {/* Subtle background shape */}
+                      <div className="absolute -top-6 left-1/2 -translate-x-1/2 w-48 h-48 md:w-64 md:h-64 bg-primary/10 rounded-full blur-2xl z-0" />
+                      <img
+                        src={slide.illustration}
+                        alt={slide.title}
+                        className="w-40 h-40 md:w-56 md:h-56 rounded-2xl shadow-2xl object-contain relative z-10"
+                      />
+                      {/* Floating badge */}
+                      <div className={`absolute -top-4 right-1/2 translate-x-16 flex items-center gap-2 px-4 py-2 rounded-xl shadow-lg text-sm font-semibold ${onboardingTips[idx].badgeColor} z-20 animate-float`}
+                        style={{ animationDelay: `${0.2 + idx * 0.1}s` }}
+                      >
+                        {onboardingTips[idx].icon}
+                        {onboardingTips[idx].badge}
+                      </div>
+                    </div>
+                  ) : (
+                    <img
+                      src={slide.illustration}
+                      alt={slide.title}
+                      className="w-40 h-40 md:w-56 md:h-56 mb-8 rounded-2xl shadow-2xl object-contain"
+                    />
+                  )}
+                  <h2 className="text-2xl font-bold text-foreground mb-4">{slide.title}</h2>
+                  <p className="text-muted-foreground mb-4 text-lg">{slide.desc}</p>
+                  {/* Bold tip for steps 1-3 */}
+                  {slide.type === 'intro' && (
+                    <div className="mb-2">
+                      <span className="inline-block text-lg font-bold text-primary drop-shadow-sm bg-white/60 px-4 py-2 rounded-xl animate-fade-in-up" style={{ animationDelay: `${0.3 + idx * 0.1}s` }}>{onboardingTips[idx].tip}</span>
+                    </div>
+                  )}
+                  {/* Interactive slides for steps 4-6 */}
+                  {slide.type === 'currency' && (
+                    <div className="w-full flex flex-col items-center mb-4">
+                      <Label htmlFor="currency" className="mb-2 text-lg font-medium">Currency</Label>
+                      <select
+                        id="currency"
+                        className="w-full max-w-xs h-12 rounded-xl border-2 border-input bg-white/80 text-foreground px-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
+                        value={data.currency}
+                        onChange={e => setData(d => ({ ...d, currency: e.target.value }))}
+                      >
+                        {currencyOptions.map(opt => (
+                          <option key={opt.code} value={opt.code}>{opt.symbol} {opt.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                  {slide.type === 'categories' && (
+                    <div className="w-full flex flex-col items-center mb-4">
+                      <Label className="mb-2 text-lg font-medium">Categories</Label>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {categoryOptions.map(cat => (
+                          <Badge
+                            key={cat}
+                            className={`cursor-pointer px-4 py-2 rounded-xl text-base ${data.categories.includes(cat) ? 'bg-primary text-white' : 'bg-muted-foreground/10 text-foreground'}`}
+                            onClick={() => toggleCategory(cat)}
+                          >
+                            {cat}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {slide.type === 'goals' && (
+                    <div className="w-full flex flex-col items-center mb-4">
+                      <Label className="mb-2 text-lg font-medium">Goal</Label>
+                      <div className="flex flex-wrap gap-2 justify-center">
+                        {goalOptions.map(goal => (
+                          <Badge
+                            key={goal}
+                            className={`cursor-pointer px-4 py-2 rounded-xl text-base ${data.goals.includes(goal) ? 'bg-primary text-white' : 'bg-muted-foreground/10 text-foreground'}`}
+                            onClick={() => toggleGoal(goal)}
+                          >
+                            {goal}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </motion.div>
+              </SwiperSlide>
+            ))}
+          </Swiper>
+          {/* Progress indicator */}
+          <div className="flex justify-center items-center mb-8 space-x-2">
+            {onboardingSlides.map((_, idx) => (
+              <span
+                key={idx}
+                className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                  idx === swiperIndex
+                    ? 'bg-primary shadow-lg scale-110'
+                    : 'bg-muted-foreground/30'
+                }`}
+              />
+            ))}
+          </div>
+          {/* Swipe gesture prompt */}
+          <motion.div
+            className="flex justify-center mb-8"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5 }}
+          >
+            <span className="text-muted-foreground text-sm">Swipe to continue</span>
+          </motion.div>
+          {/* CTA button */}
+          <motion.div
+            className="w-full"
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+          >
             <Button
-              variant="ghost"
-              onClick={() => handleComplete()}
-              className="w-full mt-4 text-muted-foreground hover:text-foreground"
+              size="lg"
+              className="w-full primary-button text-lg py-6 rounded-2xl font-semibold shadow-strong"
+              onClick={() => {
+                if (swiperIndex < onboardingSlides.length - 1) {
+                  setSwiperIndex(swiperIndex + 1);
+                  swiperRef.current?.slideNext();
+                } else {
+                  completeOnboarding();
+                  navigate('/dashboard');
+                }
+              }}
             >
-              Skip for now
+              {swiperIndex < onboardingSlides.length - 1 ? 'Next' : "Let's Get Started"}
             </Button>
-          )}
-        </div>
+          </motion.div>
+        </motion.div>
       </div>
     </div>
   );

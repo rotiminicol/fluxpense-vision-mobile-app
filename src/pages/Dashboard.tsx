@@ -8,7 +8,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { 
   Plus, Camera, FileText, TrendingUp, TrendingDown, 
   DollarSign, PieChart, Calendar, Bell, User,
-  Scan, Upload, Eye, MoreHorizontal, LogOut, Settings
+  Scan, Upload, Eye, MoreHorizontal, LogOut, Settings, Lightbulb
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -19,6 +19,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import BottomNavigation from '@/components/BottomNavigation';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
 
 interface Expense {
   id: string;
@@ -109,7 +110,7 @@ const Dashboard: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-surface to-primary/5 relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-background via-surface to-primary/5 relative overflow-hidden flex flex-col">
       {/* Background decoration */}
       <div className="absolute inset-0">
         <div className="absolute top-20 right-10 w-64 h-64 bg-primary/3 rounded-full blur-3xl"></div>
@@ -203,67 +204,81 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="relative z-10 p-6 space-y-6">
-        {/* Monthly Overview Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="expense-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">This Month</p>
-                  <p className="text-xl font-bold text-foreground">${monthlySpent.toLocaleString()}</p>
-                </div>
-                <div className="w-10 h-10 bg-expense/10 rounded-xl flex items-center justify-center">
-                  <TrendingDown className="w-5 h-5 text-expense" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="expense-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Remaining</p>
-                  <p className="text-xl font-bold text-success">${remaining.toLocaleString()}</p>
-                </div>
-                <div className="w-10 h-10 bg-success/10 rounded-xl flex items-center justify-center">
-                  <DollarSign className="w-5 h-5 text-success" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="expense-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Income</p>
-                  <p className="text-xl font-bold text-income">${monthlyIncome.toLocaleString()}</p>
-                </div>
-                <div className="w-10 h-10 bg-income/10 rounded-xl flex items-center justify-center">
-                  <TrendingUp className="w-5 h-5 text-income" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="expense-card">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">Budget Used</p>
-                  <p className="text-xl font-bold text-foreground">{budgetUsed.toFixed(0)}%</p>
-                </div>
-                <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center">
-                  <PieChart className="w-5 h-5 text-primary" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      {/* Main scrollable content */}
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
+        {/* Animated summary cards */}
+        <div className="grid grid-cols-1 gap-6 mb-8">
+          <motion.div
+            className="backdrop-blur-lg bg-white/20 border border-white/30 rounded-2xl shadow-2xl p-6 flex items-center justify-between"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1 }}
+          >
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Total Spent</div>
+              <div className="text-2xl font-bold text-foreground">${monthlySpent.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 bg-primary/10 rounded-xl flex items-center justify-center">
+              <TrendingDown className="w-6 h-6 text-primary" />
+            </div>
+          </motion.div>
+          <motion.div
+            className="backdrop-blur-lg bg-white/20 border border-white/30 rounded-2xl shadow-2xl p-6 flex items-center justify-between"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Monthly Limit</div>
+              <div className="text-2xl font-bold text-foreground">${monthlyBudget.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 bg-warning/10 rounded-xl flex items-center justify-center">
+              <PieChart className="w-6 h-6 text-warning" />
+            </div>
+          </motion.div>
+          <motion.div
+            className="backdrop-blur-lg bg-white/20 border border-white/30 rounded-2xl shadow-2xl p-6 flex items-center justify-between"
+            initial={{ opacity: 0, y: 40 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+          >
+            <div>
+              <div className="text-sm text-muted-foreground mb-1">Balance Left</div>
+              <div className="text-2xl font-bold text-foreground">${remaining.toLocaleString()}</div>
+            </div>
+            <div className="w-12 h-12 bg-success/10 rounded-xl flex items-center justify-center">
+              <TrendingUp className="w-6 h-6 text-success" />
+            </div>
+          </motion.div>
         </div>
-
+        {/* Animated chart */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <div className="bg-white/20 rounded-2xl p-4 shadow-xl backdrop-blur-md">
+            <CardTitle className="mb-2">Spending Breakdown</CardTitle>
+          </div>
+        </motion.div>
+        {/* Daily tips widget */}
+        <motion.div
+          className="mb-8"
+          initial={{ opacity: 0, y: 40 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+        >
+          <div className="bg-gradient-to-r from-primary/10 to-secondary/10 rounded-2xl p-4 shadow-lg flex items-center">
+            <div className="w-10 h-10 bg-primary/20 rounded-full flex items-center justify-center mr-4">
+              <Lightbulb className="w-6 h-6 text-primary" />
+            </div>
+            <div>
+              <div className="font-semibold text-foreground">Tip of the Day</div>
+              <div className="text-sm text-muted-foreground">Set a weekly review to spot spending trends and save more.</div>
+            </div>
+          </div>
+        </motion.div>
         {/* Budget Progress */}
         <Card className="expense-card">
           <CardHeader className="pb-3">
@@ -406,28 +421,30 @@ const Dashboard: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
+
+      {/* Floating Action Button (FAB) */}
+      <motion.button
+        onClick={handleManualEntry}
+        className="fixed bottom-24 right-6 z-40 w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary shadow-strong flex items-center justify-center text-white text-3xl hover:scale-110 focus:scale-105 transition-transform duration-200 animate-fab-pulse"
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.7, type: 'spring', bounce: 0.4 }}
+        style={{ boxShadow: '0 8px 32px 0 rgba(31,38,135,0.18)' }}
+        aria-label="Add Expense"
+      >
+        <Plus className="w-8 h-8 rotate-0 transition-transform duration-300 group-hover:rotate-90" />
+      </motion.button>
 
       {/* Bottom Navigation */}
-      <BottomNavigation onQuickAdd={() => setShowAddOptions(!showAddOptions)} />
-
-      {/* Floating Action Options */}
-      {showAddOptions && (
-        <div className="fixed bottom-24 right-6 space-y-3 animate-slide-up z-50">
-          <Button
-            onClick={handleScanReceipt}
-            className="w-14 h-14 rounded-full bg-success text-white shadow-strong hover:scale-110 transition-all duration-300"
-          >
-            <Scan className="w-6 h-6" />
-          </Button>
-          <Button
-            onClick={handleManualEntry}
-            className="w-14 h-14 rounded-full bg-secondary text-white shadow-strong hover:scale-110 transition-all duration-300"
-          >
-            <Plus className="w-6 h-6" />
-          </Button>
-        </div>
-      )}
+      <motion.div
+        initial={{ y: 80, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
+        className="z-50"
+      >
+        <BottomNavigation onQuickAdd={handleManualEntry} />
+      </motion.div>
     </div>
   );
 };

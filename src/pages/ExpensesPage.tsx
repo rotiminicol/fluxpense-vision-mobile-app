@@ -11,9 +11,12 @@ import {
   Receipt,
   ArrowUpDown,
   TrendingDown,
-  TrendingUp
+  TrendingUp,
+  Plus
 } from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
+import { motion } from 'framer-motion';
+import BottomNavigation from '@/components/BottomNavigation';
 
 const ExpensesPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,7 +72,7 @@ const ExpensesPage: React.FC = () => {
   const categories = [...new Set(expenses.map(e => e.category))];
 
   return (
-    <div className="min-h-screen bg-gradient-surface pb-20">
+    <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
       {/* Header */}
       <div className="bg-card/95 backdrop-blur-xl border-b border-border/50 sticky top-0 z-40">
         <div className="flex items-center justify-between p-6">
@@ -90,10 +93,14 @@ const ExpensesPage: React.FC = () => {
           </Button>
         </div>
       </div>
-
-      <div className="p-6 space-y-6">
-        {/* Search and Filter */}
-        <div className="flex space-x-3">
+      <main className="flex-1 overflow-y-auto relative z-10 pb-32 px-4 pt-6 max-w-md mx-auto w-full">
+        {/* Animated Filters */}
+        <motion.div
+          className="flex space-x-3 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5 }}
+        >
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
@@ -110,10 +117,14 @@ const ExpensesPage: React.FC = () => {
           <Button variant="outline" size="sm">
             <Calendar className="w-4 h-4" />
           </Button>
-        </div>
-
+        </motion.div>
         {/* Quick Stats */}
-        <div className="grid grid-cols-2 gap-4">
+        <motion.div
+          className="grid grid-cols-2 gap-4 mb-6"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
@@ -141,24 +152,28 @@ const ExpensesPage: React.FC = () => {
               </div>
             </CardContent>
           </Card>
-        </div>
-
+        </motion.div>
         {/* Categories */}
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Categories</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2">
-              {categories.map((category) => (
-                <Badge key={category} variant="secondary" className="px-3 py-1">
-                  {category}
-                </Badge>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+        >
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg">Categories</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-wrap gap-2">
+                {categories.map((category) => (
+                  <Badge key={category} variant="secondary" className="px-3 py-1">
+                    {category}
+                  </Badge>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
         {/* Expense List */}
         <Card>
           <CardHeader className="pb-3">
@@ -205,7 +220,9 @@ const ExpensesPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-      </div>
+      </main>
+      {/* Bottom Navigation */}
+      <BottomNavigation onQuickAdd={() => {}} />
     </div>
   );
 };
