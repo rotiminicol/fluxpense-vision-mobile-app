@@ -6,6 +6,9 @@ import { cn } from "@/lib/utils"
 
 const Dialog = DialogPrimitive.Root
 
+// DialogRoot is exported for advanced modal flows, e.g., simulating Google OAuth popups.
+const DialogRoot = DialogPrimitive.Root
+
 const DialogTrigger = DialogPrimitive.Trigger
 
 const DialogPortal = DialogPrimitive.Portal
@@ -27,6 +30,7 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = DialogPrimitive.Overlay.displayName
 
+// For custom animated modals, wrap the children of DialogContent in motion.div, not DialogContent itself.
 const DialogContent = React.forwardRef<
   React.ElementRef<typeof DialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
@@ -108,6 +112,7 @@ DialogDescription.displayName = DialogPrimitive.Description.displayName
 
 export {
   Dialog,
+  DialogRoot,
   DialogPortal,
   DialogOverlay,
   DialogClose,

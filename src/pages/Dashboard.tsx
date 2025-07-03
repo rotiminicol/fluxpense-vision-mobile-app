@@ -20,6 +20,7 @@ import {
 import BottomNavigation from '@/components/BottomNavigation';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface Expense {
   id: string;
@@ -34,6 +35,7 @@ interface Expense {
 const Dashboard: React.FC = () => {
   const { toast } = useToast();
   const { user, logout } = useAuth();
+  const navigate = useNavigate();
   
   const [showAddOptions, setShowAddOptions] = useState(false);
   
@@ -194,7 +196,7 @@ const Dashboard: React.FC = () => {
                   Billing
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={logout} className="text-destructive">
+                <DropdownMenuItem onClick={() => { logout(); navigate('/welcome'); }} className="text-destructive">
                   <LogOut className="w-4 h-4 mr-2" />
                   Logout
                 </DropdownMenuItem>
