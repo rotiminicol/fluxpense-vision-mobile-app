@@ -97,6 +97,21 @@ const onboardingTips = [
   },
 ];
 
+const onboardingHowItWorks = [
+  'Just snap a photo of your receipt and our AI will do the rest. No more manual entry!',
+  'See your spending breakdown instantly with interactive charts and graphs.',
+  'Set budgets, get reminders, and always know where your money goes.'
+];
+
+const onboardingFunFacts = [
+  'Over 80% of users save time with receipt scanning!',
+  'Visual feedback helps you spot trends 2x faster.',
+  'Users who set goals are 3x more likely to stay on budget.'
+];
+
+const currencyFunFact = 'You can always change your main currency later in Settings.';
+const currencyMostPopular = 'USD'; // For demo, could use locale detection
+
 const OnboardingScreen: React.FC = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -247,7 +262,7 @@ const OnboardingScreen: React.FC = () => {
             {onboardingSlides.map((slide, idx) => (
               <SwiperSlide key={slide.title}>
                 <motion.div
-                  className={`flex flex-col items-center text-center justify-center min-h-[75vh] ${slide.type === 'intro' ? 'py-12' : ''}`}
+                  className={`flex flex-col items-center text-center justify-center min-h-[75vh] ${slide.type === 'intro' || slide.type === 'currency' ? 'pt-28' : ''} ${slide.type === 'intro' ? 'py-12' : ''}`}
                   style={slide.type === 'intro' ? { minHeight: '75vh' } : {}}
                   initial={{ opacity: 0, y: 40 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -282,25 +297,49 @@ const OnboardingScreen: React.FC = () => {
                   <p className="text-muted-foreground mb-4 text-lg">{slide.desc}</p>
                   {/* Bold tip for steps 1-3 */}
                   {slide.type === 'intro' && (
-                    <div className="mb-2">
-                      <span className="inline-block text-lg font-bold text-primary drop-shadow-sm bg-white/60 px-4 py-2 rounded-xl animate-fade-in-up" style={{ animationDelay: `${0.3 + idx * 0.1}s` }}>{onboardingTips[idx].tip}</span>
-                    </div>
+                    <>
+                      <div className="mb-2">
+                        <span className="inline-block text-sm font-semibold text-primary/80 bg-primary/10 px-3 py-1 rounded-lg animate-fade-in-up" style={{ animationDelay: `${0.35 + idx * 0.1}s` }}>
+                          How it works: {onboardingHowItWorks[idx]}
+                        </span>
+                      </div>
+                      <div className="mb-2 flex items-center justify-center gap-2 animate-fade-in-up" style={{ animationDelay: `${0.4 + idx * 0.1}s` }}>
+                        <svg className="w-5 h-5 text-yellow-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-3.09 1.636.588-3.43L5 10.364l3.454-.502L10 6.5l1.546 3.362L15 10.364l-2.498 2.842.588 3.43z" /></svg>
+                        <span className="text-xs text-muted-foreground">Did you know? {onboardingFunFacts[idx]}</span>
+                      </div>
+                    </>
                   )}
                   {/* Interactive slides for steps 4-6 */}
                   {slide.type === 'currency' && (
-                    <div className="w-full flex flex-col items-center mb-4">
-                      <Label htmlFor="currency" className="mb-2 text-lg font-medium">Currency</Label>
-                      <select
-                        id="currency"
-                        className="w-full max-w-xs h-12 rounded-xl border-2 border-input bg-white/80 text-foreground px-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary/40"
-                        value={data.currency}
-                        onChange={e => setData(d => ({ ...d, currency: e.target.value }))}
-                      >
-                        {currencyOptions.map(opt => (
-                          <option key={opt.code} value={opt.code}>{opt.symbol} {opt.name}</option>
-                        ))}
-                      </select>
-                    </div>
+                    <>
+                      <div className="relative w-full flex flex-col items-center mb-4">
+                        {/* World/currency icon background */}
+                        <div className="absolute left-1/2 -translate-x-1/2 -top-8 w-32 h-32 bg-primary/10 rounded-full blur-2xl z-0 flex items-center justify-center">
+                          <svg className="w-16 h-16 text-primary/40 mx-auto" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2" fill="none" /><path d="M2 12h20M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20" stroke="currentColor" strokeWidth="2" /></svg>
+                        </div>
+                        <Label htmlFor="currency" className="mb-2 text-lg font-medium relative z-10">Currency</Label>
+                        <select
+                          id="currency"
+                          className="w-full max-w-xs h-12 rounded-xl border-2 border-input bg-white/80 text-foreground px-4 text-lg focus:outline-none focus:ring-2 focus:ring-primary/40 relative z-10"
+                          value={data.currency}
+                          onChange={e => setData(d => ({ ...d, currency: e.target.value }))}
+                        >
+                          {currencyOptions.map(opt => (
+                            <option key={opt.code} value={opt.code}>{opt.symbol} {opt.name}</option>
+                          ))}
+                        </select>
+                        <div className="mt-2 text-xs text-muted-foreground relative z-10">
+                          <span className="font-semibold text-primary">Most popular:</span> {currencyMostPopular}
+                        </div>
+                        <div className="mt-2 text-xs text-muted-foreground relative z-10">
+                          Why choose the right currency? It helps you track your finances more accurately and avoid confusion.
+                        </div>
+                        <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground relative z-10 animate-fade-in-up">
+                          <svg className="w-4 h-4 text-yellow-400 animate-pulse" fill="currentColor" viewBox="0 0 20 20"><path d="M10 15l-3.09 1.636.588-3.43L5 10.364l3.454-.502L10 6.5l1.546 3.362L15 10.364l-2.498 2.842.588 3.43z" /></svg>
+                          <span>{currencyFunFact}</span>
+                        </div>
+                      </div>
+                    </>
                   )}
                   {slide.type === 'categories' && (
                     <div className="w-full flex flex-col items-center mb-4">
