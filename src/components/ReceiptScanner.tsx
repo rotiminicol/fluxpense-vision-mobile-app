@@ -32,6 +32,10 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onExpenseAdded, onClose
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [showCamera, setShowCamera] = useState(false);
+  const [stream, setStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   const categories = [
     '🍔 Food & Dining', '⛽ Transportation', '🛍️ Shopping', '🏠 Bills & Utilities',
@@ -91,12 +95,67 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onExpenseAdded, onClose
     }
   };
 
+  const startCamera = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({ 
+        video: { 
+          facingMode: 'environment', // Use back camera on mobile
+          width: { ideal: 1920 },
+          height: { ideal: 1080 }
+        } 
+      });
+      
+      setStream(mediaStream);
+      setShowCamera(true);
+      
+      if (videoRef.current) {
+        videoRef.current.srcObject = mediaStream;
+      }
+    } catch (error) {
+      toast({
+        title: "Camera access denied",
+        description: "Please allow camera permissions to take photos.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const stopCamera = () => {
+    if (stream) {
+      stream.getTracks().forEach(track => track.stop());
+      setStream(null);
+    }
+    setShowCamera(false);
+  };
+
+  const capturePhoto = () => {
+    if (!videoRef.current || !canvasRef.current) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const context = canvas.getContext('2d');
+
+    if (!context) return;
+
+    // Set canvas dimensions to match video
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
+    // Draw the video frame to canvas
+    context.drawImage(video, 0, 0);
+
+    // Convert canvas to blob and create file
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `receipt-${Date.now()}.jpg`, { type: 'image/jpeg' });
+        handleFileSelect(file);
+        stopCamera();
+      }
+    }, 'image/jpeg', 0.9);
+  };
+
   const handleCameraCapture = () => {
-    // In a real app, this would open the camera
-    toast({
-      title: "Camera feature",
-      description: "Camera integration would open here for live receipt capture.",
-    });
+    startCamera();
   };
 
   const handleUploadClick = () => {
@@ -160,8 +219,53 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onExpenseAdded, onClose
             </Button>
           </div>
 
+          {/* Camera Interface */}
+          {showCamera && (
+            <div className="space-y-4 animate-fade-in-up">
+              <div className="relative">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-64 object-cover rounded-xl bg-black"
+                />
+                <canvas
+                  ref={canvasRef}
+                  className="hidden"
+                />
+                
+                {/* Camera overlay */}
+                <div className="absolute inset-0 border-4 border-primary/30 rounded-xl pointer-events-none">
+                  <div className="absolute top-4 left-4 right-4 text-center">
+                    <p className="text-white text-sm bg-black/50 rounded-lg px-3 py-1 inline-block">
+                      Position receipt in frame
+                    </p>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="flex space-x-3">
+                <Button
+                  onClick={capturePhoto}
+                  className="flex-1 primary-button h-12 rounded-xl font-semibold"
+                >
+                  <Camera className="w-5 h-5 mr-2" />
+                  Capture Photo
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={stopCamera}
+                  className="px-6 h-12 rounded-xl border-2"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* Upload Options */}
-          {!selectedFile && (
+          {!selectedFile && !showCamera && (
             <div className="space-y-4 animate-fade-in-up">
               <div className="text-center mb-6">
                 <img 
