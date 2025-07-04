@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
 
 interface User {
   id: string;
@@ -30,78 +32,104 @@ export const useAuth = () => {
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<Session | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored user session
-    const storedUser = localStorage.getItem('fluxpense_user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    setIsLoading(false);
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        if (session?.user) {
+          // Check if user has completed onboarding
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('onboarding_completed, full_name')
+            .eq('user_id', session.user.id)
+            .single();
+          
+          setUser({
+            id: session.user.id,
+            email: session.user.email || '',
+            name: profile?.full_name || session.user.email?.split('@')[0] || '',
+            isFirstLogin: !profile?.onboarding_completed
+          });
+        } else {
+          setUser(null);
+        }
+        setIsLoading(false);
+      }
+    );
+
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      // Initial session handling is done by the auth state change listener
+    });
+
+    return () => subscription.unsubscribe();
   }, []);
 
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const userData: User = {
-        id: Date.now().toString(),
+      const { error } = await supabase.auth.signInWithPassword({
         email,
-        name: email.split('@')[0],
-        isFirstLogin: false
-      };
+        password,
+      });
       
-      setUser(userData);
-      localStorage.setItem('fluxpense_user', JSON.stringify(userData));
-    } catch (error) {
-      throw new Error('Login failed');
-    } finally {
+      if (error) throw error;
+    } catch (error: any) {
       setIsLoading(false);
+      throw new Error(error.message || 'Login failed');
     }
   };
 
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const redirectUrl = `${window.location.origin}/`;
       
-      const userData: User = {
-        id: Date.now().toString(),
+      const { error } = await supabase.auth.signUp({
         email,
-        name,
-        isFirstLogin: true
-      };
+        password,
+        options: {
+          emailRedirectTo: redirectUrl,
+          data: {
+            full_name: name,
+          }
+        }
+      });
       
-      setUser(userData);
-      localStorage.setItem('fluxpense_user', JSON.stringify(userData));
-    } catch (error) {
-      throw new Error('Signup failed');
-    } finally {
+      if (error) throw error;
+    } catch (error: any) {
       setIsLoading(false);
+      throw new Error(error.message || 'Signup failed');
     }
   };
 
-  // Update logout to accept optional navigate callback
-  const logout = (navigate?: (path: string) => void) => {
-    setUser(null);
-    localStorage.removeItem('fluxpense_user');
+  const logout = async (navigate?: (path: string) => void) => {
+    await supabase.auth.signOut();
     if (navigate) navigate('/welcome');
   };
 
   const resetPassword = async (email: string) => {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    
+    if (error) throw error;
   };
 
-  const completeOnboarding = () => {
-    if (user) {
-      const updatedUser = { ...user, isFirstLogin: false };
-      setUser(updatedUser);
-      localStorage.setItem('fluxpense_user', JSON.stringify(updatedUser));
+  const completeOnboarding = async () => {
+    if (user && session) {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ onboarding_completed: true })
+        .eq('user_id', session.user.id);
+      
+      if (!error) {
+        setUser(prev => prev ? { ...prev, isFirstLogin: false } : null);
+      }
     }
   };
 

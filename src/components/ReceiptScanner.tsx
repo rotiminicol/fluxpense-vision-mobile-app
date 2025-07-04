@@ -10,6 +10,7 @@ import {
   DollarSign, Calendar, FileText, Zap 
 } from 'lucide-react';
 import receiptScanningIllustration from '@/assets/receipt-scanning-3d.png';
+import { supabase } from '@/integrations/supabase/client';
 
 interface ExtractedData {
   amount: number;
@@ -42,25 +43,83 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onExpenseAdded, onClose
     '🎬 Entertainment', '💊 Healthcare', '✈️ Travel', '📚 Education'
   ];
 
-  // Simulate OCR processing
-  const simulateOCRProcessing = useCallback(async (file: File): Promise<ExtractedData> => {
-    // Simulate processing time
-    await new Promise(resolve => setTimeout(resolve, 3000));
-    
-    // Mock extracted data based on common receipt patterns
-    const mockData: ExtractedData = {
-      amount: Math.round((Math.random() * 150 + 10) * 100) / 100,
-      merchant: ['Starbucks Coffee', 'Shell Gas Station', 'Target Store', 'Amazon', 'McDonald\'s'][
-        Math.floor(Math.random() * 5)
-      ],
-      date: new Date().toISOString().split('T')[0],
-      category: categories[Math.floor(Math.random() * categories.length)],
-      items: ['Coffee', 'Sandwich', 'Tax'].slice(0, Math.floor(Math.random() * 3) + 1),
-      confidence: Math.round((Math.random() * 0.3 + 0.7) * 100) / 100
-    };
-    
-    return mockData;
-  }, [categories]);
+  // Process receipt with Supabase OCR
+  const processReceiptWithOCR = useCallback(async (file: File): Promise<ExtractedData> => {
+    try {
+      // Get current user
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Upload image to Supabase Storage
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${user.id}/${Date.now()}.${fileExt}`;
+      
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('receipts')
+        .upload(fileName, file);
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('receipts')
+        .getPublicUrl(fileName);
+
+      // Create receipt record
+      const { data: receipt, error: receiptError } = await supabase
+        .from('receipts')
+        .insert({
+          user_id: user.id,
+          image_url: publicUrl,
+          original_filename: file.name,
+          file_size: file.size,
+          ocr_status: 'processing'
+        })
+        .select()
+        .single();
+
+      if (receiptError) throw receiptError;
+
+      // Convert file to base64 for OCR processing
+      const reader = new FileReader();
+      return new Promise((resolve, reject) => {
+        reader.onload = async () => {
+          try {
+            const base64 = reader.result?.toString().split(',')[1];
+            
+            // Call OCR function
+            const { data, error } = await supabase.functions.invoke('extract-receipt', {
+              body: {
+                image: base64,
+                imageUrl: publicUrl,
+                receiptId: receipt.id
+              }
+            });
+
+            if (error) throw error;
+
+            resolve({
+              amount: data.extractedData.total,
+              merchant: data.extractedData.merchant,
+              date: data.extractedData.date,
+              category: data.extractedData.category,
+              items: data.extractedData.items?.map((item: any) => item.name) || [],
+              confidence: data.extractedData.confidence
+            });
+          } catch (error) {
+            reject(error);
+          }
+        };
+        
+        reader.onerror = () => reject(new Error('Failed to read file'));
+        reader.readAsDataURL(file);
+      });
+    } catch (error) {
+      throw error;
+    }
+  }, []);
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -77,17 +136,18 @@ const ReceiptScanner: React.FC<ReceiptScannerProps> = ({ onExpenseAdded, onClose
     setIsProcessing(true);
 
     try {
-      const data = await simulateOCRProcessing(file);
+      const data = await processReceiptWithOCR(file);
       setExtractedData(data);
       
       toast({
         title: "Receipt processed successfully! 🎉",
-        description: `Extracted data with ${Math.round(data.confidence * 100)}% confidence`,
+        description: `Extracted $${data.amount} from ${data.merchant}`,
       });
-    } catch (error) {
+    } catch (error: any) {
+      console.error('Error processing receipt:', error);
       toast({
         title: "Processing failed",
-        description: "Unable to extract data from receipt. Please try again.",
+        description: error.message || "Unable to extract data from receipt. Please try again.",
         variant: "destructive",
       });
     } finally {
