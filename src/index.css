@@ -12,6 +12,15 @@
     --surface: 220 15% 96%;
     --surface-elevated: 220 10% 100%;
 
+    --card: 0 0% 98%;
+  --card-foreground: 0 0% 20%;
+  --border: 0 0% 80%;
+  --hover: 0 0% 95%;
+  --primary: 221 83% 53%;
+  --primary-foreground: 0 0% 100%;
+  --muted-foreground: 0 0% 45%;
+  --shadow-strong: 0 4px 24px rgba(0,0,0,0.2);
+
     /* Card Components */
     --card: 220 10% 100%;
     --card-foreground: 215 20% 15%;

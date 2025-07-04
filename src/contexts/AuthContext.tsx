@@ -13,7 +13,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   signup: (email: string, password: string, name: string) => Promise<void>;
-  logout: () => void;
+  logout: (navigate?: (path: string) => void) => void;
   resetPassword: (email: string) => Promise<void>;
   completeOnboarding: () => void;
 }
@@ -85,9 +85,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const logout = () => {
+  // Update logout to accept optional navigate callback
+  const logout = (navigate?: (path: string) => void) => {
     setUser(null);
     localStorage.removeItem('fluxpense_user');
+    if (navigate) navigate('/welcome');
   };
 
   const resetPassword = async (email: string) => {

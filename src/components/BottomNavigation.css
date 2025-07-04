@@ -1,0 +1,48 @@
+@keyframes pulse-subtle {
+   0%, 100% { transform: scale(1); }
+   50% { transform: scale(1.05); }
+ }
+ .animate-pulse-subtle {
+   animation: pulse-subtle 2s infinite ease-in-out;
+ }
+ 
+ @keyframes scale-in {
+   0% { transform: scale(0.8); opacity: 0; }
+   100% { transform: scale(1); opacity: 1; }
+ }
+ .animate-scale-in {
+   animation: scale-in 0.3s ease-out;
+ }
+ 
+ @keyframes slide-up {
+   0% { transform: translateY(20px); opacity: 0; }
+   100% { transform: translateY(0); opacity: 1; }
+ }
+ .animate-slide-up {
+   animation: slide-up 0.3s ease-out;
+ }
+ 
+ @keyframes slide-up-fast {
+   0% { transform: translateY(100%); }
+   100% { transform: translateY(0); }
+ }
+ .animate-slide-up-fast {
+   animation: slide-up-fast 0.4s ease-out;
+ }
+ 
+ @keyframes fade-in-up {
+   0% { transform: translateY(10px); opacity: 0; }
+   100% { transform: translateY(0); opacity: 1; }
+ }
+ .animate-fade-in-up {
+   animation: fade-in-up 0.3s ease-out;
+ }
+ 
+ @keyframes scan-frame {
+   0% { border-color: rgba(59, 130, 246, 0.5); }
+   50% { border-color: rgba(59, 130, 246, 1); }
+   100% { border-color: rgba(59, 130, 246, 0.5); }
+ }
+ .animate-scan-frame {
+   animation: scan-frame 1.5s infinite ease-in-out;
+ }
