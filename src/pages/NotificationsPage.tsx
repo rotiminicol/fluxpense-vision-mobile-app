@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Switch } from '@/components/ui/switch';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Bell, 
   BellOff, 
@@ -21,58 +23,110 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const NotificationsPage: React.FC = () => {
-  const [notifications, setNotifications] = useState([
-    {
-      id: '1',
-      type: 'budget' as const,
-      title: 'Budget Alert',
-      message: 'You\'ve used 85% of your monthly food budget',
-      time: '2 hours ago',
-      read: false,
-      icon: AlertTriangle,
-      color: 'text-warning'
-    },
-    {
-      id: '2',
-      type: 'expense' as const,
-      title: 'New Expense Added',
-      message: 'Coffee purchase of $4.50 was automatically detected',
-      time: '4 hours ago',
-      read: false,
-      icon: DollarSign,
-      color: 'text-primary'
-    },
-    {
-      id: '3',
-      type: 'reminder' as const,
-      title: 'Receipt Reminder',
-      message: 'Don\'t forget to scan your grocery receipt from today',
-      time: '1 day ago',
-      read: true,
-      icon: Receipt,
-      color: 'text-info'
-    },
-    {
-      id: '4',
-      type: 'success' as const,
-      title: 'Goal Achieved!',
-      message: 'Congratulations! You\'ve saved $500 this month',
-      time: '2 days ago',
-      read: true,
-      icon: CheckCircle,
-      color: 'text-success'
-    },
-    {
-      id: '5',
-      type: 'budget' as const,
-      title: 'Monthly Report Ready',
-      message: 'Your January spending report is now available',
-      time: '3 days ago',
-      read: true,
-      icon: Calendar,
-      color: 'text-secondary'
+  const { user } = useAuth();
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      loadMockNotifications();
     }
-  ]);
+  }, [user]);
+
+  const loadMockNotifications = async () => {
+    try {
+      // Get some real data to create relevant notifications
+      const { data: expenses } = await supabase
+        .from('expenses')
+        .select('amount, date, categories(name)')
+        .eq('user_id', user?.id)
+        .order('date', { ascending: false })
+        .limit(5);
+
+      const { data: budgets } = await supabase
+        .from('budgets')
+        .select('amount, spent_amount')
+        .eq('user_id', user?.id);
+
+      // Create dynamic notifications based on real data
+      const mockNotifications = [
+        {
+          id: '1',
+          type: 'budget' as const,
+          title: 'Budget Alert',
+          message: expenses && expenses.length > 0 ? 
+            `Recent expense: $${expenses[0].amount} for ${expenses[0].categories?.name || 'expense'}` :
+            'You\'ve used 85% of your monthly food budget',
+          time: '2 hours ago',
+          read: false,
+          icon: AlertTriangle,
+          color: 'text-warning'
+        },
+        {
+          id: '2',
+          type: 'expense' as const,
+          title: 'New Expense Added',
+          message: expenses && expenses.length > 1 ? 
+            `$${expenses[1].amount} expense was recorded` :
+            'Coffee purchase of $4.50 was automatically detected',
+          time: '4 hours ago',
+          read: false,
+          icon: DollarSign,
+          color: 'text-primary'
+        },
+        {
+          id: '3',
+          type: 'reminder' as const,
+          title: 'Receipt Reminder',
+          message: 'Don\'t forget to scan your grocery receipt from today',
+          time: '1 day ago',
+          read: true,
+          icon: Receipt,
+          color: 'text-info'
+        },
+        {
+          id: '4',
+          type: 'success' as const,
+          title: 'Goal Achieved!',
+          message: 'Congratulations! You\'re tracking your expenses regularly',
+          time: '2 days ago',
+          read: true,
+          icon: CheckCircle,
+          color: 'text-success'
+        },
+        {
+          id: '5',
+          type: 'budget' as const,
+          title: 'Monthly Report Ready',
+          message: 'Your spending report is now available',
+          time: '3 days ago',
+          read: true,
+          icon: Calendar,
+          color: 'text-secondary'
+        }
+      ];
+
+      setNotifications(mockNotifications);
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      // Fall back to static notifications
+      const staticNotifications = [
+        {
+          id: '1',
+          type: 'budget' as const,
+          title: 'Welcome to FluxPense!',
+          message: 'Start by adding your first expense',
+          time: 'Just now',
+          read: false,
+          icon: CheckCircle,
+          color: 'text-primary'
+        }
+      ];
+      setNotifications(staticNotifications);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [notificationSettings, setNotificationSettings] = useState({
     budgetAlerts: true,
@@ -113,7 +167,7 @@ const NotificationsPage: React.FC = () => {
             </div>
             <div className="flex flex-col justify-center">
               <span className="text-base font-extrabold text-blue-700 leading-tight">Notifications</span>
-              <span className="text-xs text-muted-foreground mt-0.5">{unreadCount} unread notifications</span>
+              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : `${unreadCount} unread notifications`}</span>
             </div>
           </div>
           {/* Notification Dropdown */}
@@ -223,10 +277,13 @@ const NotificationsPage: React.FC = () => {
         </Card>
         {/* Notifications List */}
         <div className="space-y-3">
-          {notifications.length === 0 && (
+          {loading && (
+            <div className="text-center text-muted-foreground py-8">Loading notifications...</div>
+          )}
+          {!loading && notifications.length === 0 && (
             <div className="text-center text-muted-foreground py-8">No notifications.</div>
           )}
-          {notifications.map((notif, idx) => (
+          {!loading && notifications.map((notif, idx) => (
             <motion.div
               key={notif.id}
               initial={{ opacity: 0, x: 40 }}

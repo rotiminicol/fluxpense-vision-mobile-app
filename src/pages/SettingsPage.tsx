@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Settings, 
   User, 
@@ -27,6 +28,9 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 
 const SettingsPage: React.FC = () => {
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  
   const [settings, setSettings] = useState({
     notifications: {
       pushNotifications: true,
@@ -50,13 +54,36 @@ const SettingsPage: React.FC = () => {
   });
 
   const [profile, setProfile] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    phone: '+1 (555) 123-4567'
+    name: user?.name || '',
+    email: user?.email || '',
+    phone: ''
   });
 
-  const { logout } = useAuth();
-  const navigate = useNavigate();
+  useEffect(() => {
+    if (user) {
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchProfile = async () => {
+    try {
+      const { data: profileData } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profileData) {
+        setProfile({
+          name: profileData.full_name || user?.name || '',
+          email: profileData.email || user?.email || '',
+          phone: '' // Add phone field to profiles table later if needed
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
+  };
 
   const updateSetting = (category: string, key: string, value: boolean | string) => {
     setSettings(prev => ({

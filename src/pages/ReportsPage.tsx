@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -22,7 +24,170 @@ import BottomNavigation from '@/components/BottomNavigation';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 const ReportsPage: React.FC = () => {
+  const { user } = useAuth();
   const [selectedPeriod, setSelectedPeriod] = useState('thisMonth');
+  const [realData, setRealData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchReportsData();
+    }
+  }, [user, selectedPeriod]);
+
+  const fetchReportsData = async () => {
+    try {
+      setLoading(true);
+      
+      // Fetch expenses with categories
+      const { data: expenses, error } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          categories(name, icon, color)
+        `)
+        .eq('user_id', user?.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      // Process data based on selected period
+      const now = new Date();
+      let filteredExpenses = expenses || [];
+
+      switch (selectedPeriod) {
+        case 'thisWeek':
+          const weekStart = new Date(now.setDate(now.getDate() - now.getDay()));
+          filteredExpenses = expenses?.filter(exp => new Date(exp.date) >= weekStart) || [];
+          break;
+        case 'thisMonth':
+          filteredExpenses = expenses?.filter(exp => {
+            const expDate = new Date(exp.date);
+            return expDate.getMonth() === now.getMonth() && expDate.getFullYear() === now.getFullYear();
+          }) || [];
+          break;
+        case 'last3Months':
+          const threeMonthsAgo = new Date();
+          threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+          filteredExpenses = expenses?.filter(exp => new Date(exp.date) >= threeMonthsAgo) || [];
+          break;
+        case 'thisYear':
+          filteredExpenses = expenses?.filter(exp => {
+            const expDate = new Date(exp.date);
+            return expDate.getFullYear() === now.getFullYear();
+          }) || [];
+          break;
+      }
+
+      // Calculate category breakdown
+      const categoryBreakdown = calculateCategoryBreakdown(filteredExpenses);
+      const monthlyTrends = calculateMonthlyTrends(filteredExpenses, selectedPeriod);
+      const totalSpent = filteredExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+      
+      const processedData = {
+        monthlyTrends,
+        categoryBreakdown,
+        budget: {
+          total: 3000, // Default budget - should come from user preferences
+          spent: totalSpent,
+          remaining: 3000 - totalSpent,
+          percent: Math.round((totalSpent / 3000) * 100),
+          days: getDaysInPeriod(selectedPeriod)
+        },
+        insights: generateInsights(filteredExpenses, selectedPeriod)
+      };
+
+      setRealData(processedData);
+    } catch (error) {
+      console.error('Error fetching reports data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const calculateCategoryBreakdown = (expenses: any[]) => {
+    const categoryTotals: { [key: string]: { amount: number; icon: string; color: string } } = {};
+    
+    expenses.forEach(expense => {
+      const categoryName = expense.categories?.name || 'Uncategorized';
+      const key = categoryName;
+      
+      if (!categoryTotals[key]) {
+        categoryTotals[key] = {
+          amount: 0,
+          icon: expense.categories?.icon || '💰',
+          color: expense.categories?.color || 'bg-gray-500'
+        };
+      }
+      categoryTotals[key].amount += expense.amount;
+    });
+
+    const total = Object.values(categoryTotals).reduce((sum, cat) => sum + cat.amount, 0);
+    
+    return Object.entries(categoryTotals)
+      .map(([category, data]) => ({
+        category: `${data.icon} ${category}`,
+        amount: data.amount,
+        percentage: Math.round((data.amount / total) * 100),
+        color: data.color
+      }))
+      .sort((a, b) => b.amount - a.amount)
+      .slice(0, 4); // Top 4 categories
+  };
+
+  const calculateMonthlyTrends = (expenses: any[], period: string) => {
+    // Simplified monthly trends - group by month
+    const monthlyData: { [key: string]: number } = {};
+    
+    expenses.forEach(expense => {
+      const date = new Date(expense.date);
+      const monthKey = date.toLocaleDateString('en-US', { month: 'short' });
+      
+      if (!monthlyData[monthKey]) {
+        monthlyData[monthKey] = 0;
+      }
+      monthlyData[monthKey] += expense.amount;
+    });
+
+    return Object.entries(monthlyData).map(([month, expenses]) => ({
+      month,
+      income: 2500, // Mock income data
+      expenses
+    }));
+  };
+
+  const generateInsights = (expenses: any[], period: string) => {
+    const total = expenses.reduce((sum, exp) => sum + exp.amount, 0);
+    const avgExpense = expenses.length > 0 ? total / expenses.length : 0;
+    
+    return [
+      {
+        title: '💡 Smart Insight',
+        desc: `You've spent $${total.toFixed(2)} this ${period.replace('this', '').replace('last3Months', 'quarter')}`,
+        color: 'from-primary/10 to-secondary/10'
+      },
+      {
+        title: '📊 Average Expense',
+        desc: `Your average expense is $${avgExpense.toFixed(2)}`,
+        color: 'from-success/10 to-primary/10'
+      },
+      {
+        title: '🎯 Tip',
+        desc: expenses.length > 0 ? 'Great job tracking your expenses!' : 'Start adding expenses to see insights',
+        color: 'from-warning/10 to-destructive/10'
+      }
+    ];
+  };
+
+  const getDaysInPeriod = (period: string) => {
+    switch (period) {
+      case 'thisWeek': return 7;
+      case 'thisMonth': return 30;
+      case 'last3Months': return 90;
+      case 'thisYear': return 365;
+      default: return 30;
+    }
+  };
   
   const periods = [
     { id: 'thisWeek', label: 'This Week' },
@@ -118,7 +283,8 @@ const ReportsPage: React.FC = () => {
       ],
     },
   };
-  const data = periodData[selectedPeriod];
+  // Use real data if available, otherwise fall back to mock data
+  const data = realData || periodData[selectedPeriod];
 
   return (
     <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">

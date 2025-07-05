@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Search, 
   Filter, 
@@ -35,14 +37,54 @@ interface Expense {
 }
 
 const ExpensesPage: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'all' | 'expense' | 'income'>('all');
   const [filterDate, setFilterDate] = useState<Date | null>(null);
   const [filterCategory, setFilterCategory] = useState<string>('');
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState<Expense | null>(null);
-  
-  const expenses: Expense[] = [
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (user) {
+      fetchExpenses();
+    }
+  }, [user]);
+
+  const fetchExpenses = async () => {
+    try {
+      const { data: expenseData, error } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          categories(name, icon)
+        `)
+        .eq('user_id', user?.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedExpenses: Expense[] = expenseData?.map(expense => ({
+        id: expense.id,
+        amount: expense.amount,
+        category: `${expense.categories?.icon || '💰'} ${expense.categories?.name || 'Uncategorized'}`,
+        description: expense.description,
+        date: expense.date,
+        type: 'expense' as const,
+        receipt: !!expense.receipt_url
+      })) || [];
+
+      setExpenses(formattedExpenses);
+    } catch (error) {
+      console.error('Error fetching expenses:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockExpenses: Expense[] = [
     {
       id: '1',
       amount: 45.99,
@@ -90,9 +132,12 @@ const ExpensesPage: React.FC = () => {
     }
   ];
 
-  const categories = [...new Set(expenses.map(e => e.category))];
+  // Use real expenses if available, otherwise use mock data
+  const displayExpenses = expenses.length > 0 ? expenses : mockExpenses;
 
-  const filteredExpenses = expenses.filter(e => {
+  const categories = [...new Set(displayExpenses.map(e => e.category))];
+
+  const filteredExpenses = displayExpenses.filter(e => {
     const matchesSearch =
       e.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       e.category.toLowerCase().includes(searchQuery.toLowerCase());
@@ -113,7 +158,7 @@ const ExpensesPage: React.FC = () => {
             </div>
             <div className="flex flex-col justify-center">
               <span className="text-base font-extrabold text-blue-700 leading-tight">All Expenses</span>
-              <span className="text-xs text-muted-foreground mt-0.5">{expenses.length} transactions</span>
+              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : `${displayExpenses.length} transactions`}</span>
             </div>
           </div>
           {/* Notification Dropdown */}

@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   User, 
   Calendar, 
@@ -33,15 +34,83 @@ const ProfilePage: React.FC = () => {
     email: user?.email || '',
   });
   const [saveSuccess, setSaveSuccess] = useState(false);
-  
-  const stats = {
-    totalExpenses: 3425.50,
-    totalIncome: 7500.00,
-    savingsRate: 54,
-    monthlyAverage: 1142.17,
-    categories: 12,
-    receiptsScanned: 87,
-    memberSince: 'January 2024'
+  const [stats, setStats] = useState({
+    totalExpenses: 0,
+    totalIncome: 0,
+    savingsRate: 0,
+    monthlyAverage: 0,
+    categories: 0,
+    receiptsScanned: 0,
+    memberSince: 'Loading...'
+  });
+
+  useEffect(() => {
+    if (user) {
+      fetchUserStats();
+      fetchProfile();
+    }
+  }, [user]);
+
+  const fetchUserStats = async () => {
+    try {
+      // Get total expenses
+      const { data: expenses } = await supabase
+        .from('expenses')
+        .select('amount, date')
+        .eq('user_id', user?.id);
+
+      // Get categories count
+      const { data: categories } = await supabase
+        .from('categories')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      // Get receipts count
+      const { data: receipts } = await supabase
+        .from('receipts')
+        .select('id')
+        .eq('user_id', user?.id);
+
+      const totalExpenses = expenses?.reduce((sum, exp) => sum + exp.amount, 0) || 0;
+      const currentMonth = new Date().getMonth();
+      const currentYear = new Date().getFullYear();
+      
+      const monthlyExpenses = expenses?.filter(exp => {
+        const expDate = new Date(exp.date);
+        return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+      }).reduce((sum, exp) => sum + exp.amount, 0) || 0;
+
+      setStats({
+        totalExpenses,
+        totalIncome: 0, // We don't track income separately yet
+        savingsRate: 0, // Calculate based on budget vs spending
+        monthlyAverage: monthlyExpenses,
+        categories: categories?.length || 0,
+        receiptsScanned: receipts?.length || 0,
+        memberSince: user?.isFirstLogin ? 'New Member' : 'Member since signup'
+      });
+    } catch (error) {
+      console.error('Error fetching user stats:', error);
+    }
+  };
+
+  const fetchProfile = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', user?.id)
+        .single();
+
+      if (profile) {
+        setProfileData({
+          name: profile.full_name || user?.name || '',
+          email: profile.email || user?.email || ''
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching profile:', error);
+    }
   };
 
   const achievements = [

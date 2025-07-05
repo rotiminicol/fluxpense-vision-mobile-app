@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   ArrowRightLeft, 
   Search, 
@@ -30,13 +32,56 @@ import { format, isToday, isThisWeek, isThisMonth, isSameDay, parseISO } from 'd
 import { Calendar as GlassyCalendar } from '@/components/ui/calendar';
 
 const TransactionsPage: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
-  const [openTransaction, setOpenTransaction] = useState<null | typeof transactions[0]>(null);
+  const [openTransaction, setOpenTransaction] = useState<null | any>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [calendarDate, setCalendarDate] = useState<Date | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   
-  const transactions = [
+  useEffect(() => {
+    if (user) {
+      fetchTransactions();
+    }
+  }, [user]);
+
+  const fetchTransactions = async () => {
+    try {
+      const { data: expenses, error } = await supabase
+        .from('expenses')
+        .select(`
+          *,
+          categories(name, icon)
+        `)
+        .eq('user_id', user?.id)
+        .order('date', { ascending: false });
+
+      if (error) throw error;
+
+      const formattedTransactions = expenses?.map(expense => ({
+        id: expense.id,
+        amount: expense.amount,
+        category: `${expense.categories?.icon || '💰'} ${expense.categories?.name || 'Uncategorized'}`,
+        description: expense.description,
+        date: expense.date + 'T12:00:00',
+        type: 'expense' as const,
+        method: expense.payment_method || 'Unknown',
+        receipt: !!expense.receipt_url,
+        location: expense.location || 'Unknown',
+        tags: expense.tags || []
+      })) || [];
+
+      setTransactions(formattedTransactions);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const mockTransactions = [
     {
       id: '1',
       amount: 45.99,
@@ -111,6 +156,9 @@ const TransactionsPage: React.FC = () => {
     }
   ];
 
+  // Use real transactions if available, otherwise use mock data
+  const displayTransactions = transactions.length > 0 ? transactions : mockTransactions;
+
   const filters = [
     { id: 'all', label: 'All Transactions' },
     { id: 'expense', label: 'Expenses' },
@@ -120,7 +168,7 @@ const TransactionsPage: React.FC = () => {
     { id: 'month', label: 'This Month' }
   ];
 
-  const filteredTransactions = transactions.filter(transaction => {
+  const filteredTransactions = displayTransactions.filter(transaction => {
     const matchesSearch = transaction.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          transaction.category.toLowerCase().includes(searchQuery.toLowerCase());
     let matchesFilter = true;
@@ -134,11 +182,11 @@ const TransactionsPage: React.FC = () => {
     return matchesSearch && matchesFilter;
   });
 
-  const totalExpenses = transactions
+  const totalExpenses = displayTransactions
     .filter(t => t.type === 'expense')
     .reduce((sum, t) => sum + t.amount, 0);
   
-  const totalIncome = transactions
+  const totalIncome = displayTransactions
     .filter(t => t.type === 'income')
     .reduce((sum, t) => sum + t.amount, 0);
 
