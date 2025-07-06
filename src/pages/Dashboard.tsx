@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { supabase } from '@/integrations/supabase/client';
 import { 
   Plus, Camera, FileText, TrendingUp, TrendingDown, 
   DollarSign, PieChart, Calendar, Bell, User,
@@ -47,33 +48,52 @@ const Dashboard: React.FC = () => {
   // Add state for selected transaction modal
   const [selectedTransaction, setSelectedTransaction] = useState<Expense & { method?: string; location?: string; tags?: string[]; receipt?: boolean } | null>(null);
   
-  // Mock data - in real app this would come from API
-  const [expenses] = useState<Expense[]>([
-    {
-      id: '1',
-      amount: 45.99,
-      category: '🍔 Food & Dining',
-      description: 'Lunch at Cafe Plaza',
-      date: '2024-01-15',
-      type: 'expense'
-    },
-    {
-      id: '2',
-      amount: 120.00,
-      category: '⛽ Transportation',
-      description: 'Gas Station Fill-up',
-      date: '2024-01-14',
-      type: 'expense'
-    },
-    {
-      id: '3',
-      amount: 2500.00,
-      category: '💰 Income',
-      description: 'Salary Payment',
-      date: '2024-01-01',
-      type: 'income'
-    }
-  ]);
+  // Real data from backend
+  const [expenses, setExpenses] = useState<Expense[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load real expenses from Supabase
+  React.useEffect(() => {
+    const loadExpenses = async () => {
+      if (!user) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('expenses')
+          .select(`
+            id,
+            amount,
+            description,
+            date,
+            categories(name)
+          `)
+          .eq('user_id', user.id)
+          .order('date', { ascending: false })
+          .limit(5);
+
+        if (error) throw error;
+
+        const formattedExpenses = data?.map(expense => ({
+          id: expense.id,
+          amount: expense.amount,
+          category: expense.categories?.name || 'Other',
+          description: expense.description,
+          date: expense.date,
+          type: 'expense' as const
+        })) || [];
+
+        setExpenses(formattedExpenses);
+      } catch (error) {
+        console.error('Error loading expenses:', error);
+        // Fallback to empty array if no data
+        setExpenses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadExpenses();
+  }, [user]);
 
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const monthlyBudget = 3000;
@@ -277,7 +297,12 @@ const Dashboard: React.FC = () => {
         <div className="mb-3">
           <div className="font-semibold text-foreground mb-1">Latest Entries</div>
           <div className="space-y-2">
-            {expenses.map((expense) => (
+            {loading ? (
+              <div className="text-center text-muted-foreground py-4">Loading expenses...</div>
+            ) : expenses.length === 0 ? (
+              <div className="text-center text-muted-foreground py-4">No expenses yet. Add your first one!</div>
+            ) : (
+              expenses.map((expense) => (
               <button
                 key={expense.id}
                 className="flex items-center justify-between p-4 bg-white/90 backdrop-blur rounded-xl shadow hover:bg-blue-50 transition-colors w-full text-left focus:outline-none"
@@ -307,7 +332,8 @@ const Dashboard: React.FC = () => {
                   <div className={`font-bold ${expense.type === 'income' ? 'text-green-600' : 'text-red-500'}`}>{expense.type === 'income' ? '+' : '-'}${expense.amount.toLocaleString()}</div>
                 </div>
               </button>
-              ))}
+              ))
+            )}
             </div>
         </div>
         {/* Transaction Details Modal: glassy, full-screen, compact */}
