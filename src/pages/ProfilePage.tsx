@@ -23,6 +23,7 @@ import {
 import { useAuth } from '@/contexts/AuthContext';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
 import { motion } from 'framer-motion';
+import ProfileImageUpload from '@/components/ProfileImageUpload';
 import BottomNavigation from '@/components/BottomNavigation';
 
 const ProfilePage: React.FC = () => {
@@ -43,6 +44,7 @@ const ProfilePage: React.FC = () => {
     receiptsScanned: 0,
     memberSince: 'Loading...'
   });
+  const [profileImage, setProfileImage] = useState<string>('');
 
   useEffect(() => {
     if (user) {
@@ -107,6 +109,7 @@ const ProfilePage: React.FC = () => {
           name: profile.full_name || user?.name || '',
           email: profile.email || user?.email || ''
         });
+        setProfileImage(profile.avatar_url || '');
       }
     } catch (error) {
       console.error('Error fetching profile:', error);
@@ -201,12 +204,11 @@ const ProfilePage: React.FC = () => {
             <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-blue-400/60 to-purple-300/40 blur-xl opacity-80 animate-pulse-slow" />
             <div className="relative bg-white/80 backdrop-blur-2xl rounded-3xl shadow-2xl p-4 flex flex-col items-center">
               <div className="relative mb-1">
-                <div className="w-24 h-24 rounded-full bg-gradient-to-br from-blue-500 to-blue-300 shadow-xl flex items-center justify-center text-white text-3xl font-extrabold border-4 border-white/30">
-                  {profileData.name?.charAt(0) || 'U'}
-                </div>
-                <button className="absolute bottom-2 right-2 w-8 h-8 rounded-full bg-white/80 shadow flex items-center justify-center hover:bg-blue-100 transition-all border-2 border-white" title="Edit Avatar">
-                  <Camera className="w-4 h-4 text-blue-600" />
-                </button>
+                <ProfileImageUpload 
+                  currentImageUrl={profileImage}
+                  onImageUpdate={setProfileImage}
+                  size="lg"
+                />
               </div>
               <div className="text-center">
                 <h2 className="text-xl font-bold text-blue-800 mb-0.5">{profileData.name || 'User'}</h2>

@@ -29,104 +29,11 @@ const NotificationsPage: React.FC = () => {
 
   useEffect(() => {
     if (user) {
-      loadMockNotifications();
-    }
-  }, [user]);
-
-  const loadMockNotifications = async () => {
-    try {
-      // Get some real data to create relevant notifications
-      const { data: expenses } = await supabase
-        .from('expenses')
-        .select('amount, date, categories(name)')
-        .eq('user_id', user?.id)
-        .order('date', { ascending: false })
-        .limit(5);
-
-      const { data: budgets } = await supabase
-        .from('budgets')
-        .select('amount, spent_amount')
-        .eq('user_id', user?.id);
-
-      // Create dynamic notifications based on real data
-      const mockNotifications = [
-        {
-          id: '1',
-          type: 'budget' as const,
-          title: 'Budget Alert',
-          message: expenses && expenses.length > 0 ? 
-            `Recent expense: $${expenses[0].amount} for ${expenses[0].categories?.name || 'expense'}` :
-            'You\'ve used 85% of your monthly food budget',
-          time: '2 hours ago',
-          read: false,
-          icon: AlertTriangle,
-          color: 'text-warning'
-        },
-        {
-          id: '2',
-          type: 'expense' as const,
-          title: 'New Expense Added',
-          message: expenses && expenses.length > 1 ? 
-            `$${expenses[1].amount} expense was recorded` :
-            'Coffee purchase of $4.50 was automatically detected',
-          time: '4 hours ago',
-          read: false,
-          icon: DollarSign,
-          color: 'text-primary'
-        },
-        {
-          id: '3',
-          type: 'reminder' as const,
-          title: 'Receipt Reminder',
-          message: 'Don\'t forget to scan your grocery receipt from today',
-          time: '1 day ago',
-          read: true,
-          icon: Receipt,
-          color: 'text-info'
-        },
-        {
-          id: '4',
-          type: 'success' as const,
-          title: 'Goal Achieved!',
-          message: 'Congratulations! You\'re tracking your expenses regularly',
-          time: '2 days ago',
-          read: true,
-          icon: CheckCircle,
-          color: 'text-success'
-        },
-        {
-          id: '5',
-          type: 'budget' as const,
-          title: 'Monthly Report Ready',
-          message: 'Your spending report is now available',
-          time: '3 days ago',
-          read: true,
-          icon: Calendar,
-          color: 'text-secondary'
-        }
-      ];
-
-      setNotifications(mockNotifications);
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-      // Fall back to static notifications
-      const staticNotifications = [
-        {
-          id: '1',
-          type: 'budget' as const,
-          title: 'Welcome to FluxPense!',
-          message: 'Start by adding your first expense',
-          time: 'Just now',
-          read: false,
-          icon: CheckCircle,
-          color: 'text-primary'
-        }
-      ];
-      setNotifications(staticNotifications);
-    } finally {
+      // For new users, just set empty notifications
+      setNotifications([]);
       setLoading(false);
     }
-  };
+  }, [user]);
 
   const [notificationSettings, setNotificationSettings] = useState({
     budgetAlerts: true,
@@ -167,7 +74,7 @@ const NotificationsPage: React.FC = () => {
             </div>
             <div className="flex flex-col justify-center">
               <span className="text-base font-extrabold text-blue-700 leading-tight">Notifications</span>
-              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : `${unreadCount} unread notifications`}</span>
+              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : notifications.length === 0 ? 'No notifications' : `${unreadCount} unread notifications`}</span>
             </div>
           </div>
           {/* Notification Dropdown */}
@@ -175,7 +82,7 @@ const NotificationsPage: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <button className="relative p-1.5 rounded-full hover:bg-blue-100 transition-colors focus:outline-none">
                 <Bell className="w-5 h-5 text-blue-600" />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[10px] text-white flex items-center justify-center">{unreadCount}</span>
+                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[10px] text-white flex items-center justify-center">{unreadCount}</span>}
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
@@ -183,15 +90,21 @@ const NotificationsPage: React.FC = () => {
                 <h4 className="font-semibold text-sm">Notifications</h4>
               </div>
               <div className="max-h-48 overflow-y-auto">
-                {notifications.slice(0, 3).map((notif) => (
-                  <DropdownMenuItem key={notif.id} className="flex items-start space-x-2 p-2">
-                    <notif.icon className={`w-4 h-4 ${notif.color} mt-1`} />
-                    <div>
-                      <p className="text-xs font-medium">{notif.title}</p>
-                      <p className="text-[11px] text-muted-foreground">{notif.message}</p>
-                    </div>
-                  </DropdownMenuItem>
-                ))}
+                {notifications.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    No notifications yet
+                  </div>
+                ) : (
+                  notifications.slice(0, 3).map((notif) => (
+                    <DropdownMenuItem key={notif.id} className="flex items-start space-x-2 p-2">
+                      <notif.icon className={`w-4 h-4 ${notif.color} mt-1`} />
+                      <div>
+                        <p className="text-xs font-medium">{notif.title}</p>
+                        <p className="text-[11px] text-muted-foreground">{notif.message}</p>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -277,13 +190,17 @@ const NotificationsPage: React.FC = () => {
         </Card>
         {/* Notifications List */}
         <div className="space-y-3">
-          {loading && (
-            <div className="text-center text-muted-foreground py-8">Loading notifications...</div>
-          )}
-          {!loading && notifications.length === 0 && (
-            <div className="text-center text-muted-foreground py-8">No notifications.</div>
-          )}
-          {!loading && notifications.map((notif, idx) => (
+            {loading && (
+              <div className="text-center text-muted-foreground py-8">Loading notifications...</div>
+            )}
+            {!loading && notifications.length === 0 && (
+              <div className="text-center text-muted-foreground py-8">
+                <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
+                <p className="text-lg font-semibold mb-2">No notifications yet</p>
+                <p className="text-sm">When you have notifications, they'll appear here</p>
+              </div>
+            )}
+            {!loading && notifications.map((notif, idx) => (
             <motion.div
               key={notif.id}
               initial={{ opacity: 0, x: 40 }}
@@ -313,7 +230,7 @@ const NotificationsPage: React.FC = () => {
                 </div>
               </Card>
             </motion.div>
-          ))}
+            ))}
         </div>
       </main>
       {/* Bottom Navigation */}

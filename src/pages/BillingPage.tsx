@@ -81,44 +81,13 @@ const BillingPage: React.FC = () => {
     }
   ];
 
-  const billingHistory = [
-    {
-      id: '1',
-      date: '2024-01-01',
-      description: 'FluxPense Pro - Monthly',
-      amount: '$9.99',
-      status: 'paid'
-    },
-    {
-      id: '2',
-      date: '2023-12-01',
-      description: 'FluxPense Pro - Monthly',
-      amount: '$9.99',
-      status: 'paid'
-    },
-    {
-      id: '3',
-      date: '2023-11-01',
-      description: 'FluxPense Pro - Monthly',
-      amount: '$9.99',
-      status: 'paid'
-    }
-  ];
+  const billingHistory: any[] = []; // Start with empty billing history
 
-  const [cards, setCards] = React.useState([
-    {
-      id: '1',
-      brand: 'Visa',
-      last4: '4242',
-      name: 'Rotimi Nicol',
-      expiry: '12/26',
-      isDefault: true
-    }
-  ]);
+  const [cards, setCards] = React.useState<any[]>([]); // Start with no cards
   const [addCardOpen, setAddCardOpen] = React.useState(false);
   const [paymentStep, setPaymentStep] = React.useState<1 | 2 | 3 | 4 | null>(null);
   const [selectedPlan, setSelectedPlan] = React.useState<string | null>(null);
-  const [selectedCardId, setSelectedCardId] = React.useState<string | null>(cards[0]?.id || null);
+  const [selectedCardId, setSelectedCardId] = React.useState<string | null>(null);
   const [cardForm, setCardForm] = React.useState({
     number: '',
     expiry: '',
@@ -195,7 +164,7 @@ const BillingPage: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <button className="relative p-1.5 rounded-full hover:bg-blue-100 transition-colors focus:outline-none">
                 <Bell className="w-5 h-5 text-blue-600" />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[10px] text-white flex items-center justify-center">3</span>
+                
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
@@ -203,27 +172,9 @@ const BillingPage: React.FC = () => {
                 <h4 className="font-semibold text-sm">Notifications</h4>
               </div>
               <div className="max-h-48 overflow-y-auto">
-                <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                  <span className="w-2 h-2 bg-primary rounded-full mt-2 inline-block" />
-                  <div>
-                    <p className="text-xs font-medium">Budget Alert</p>
-                    <p className="text-[11px] text-muted-foreground">You've used 85% of your monthly budget</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                  <span className="w-2 h-2 bg-success rounded-full mt-2 inline-block" />
-                  <div>
-                    <p className="text-xs font-medium">Goal Achieved!</p>
-                    <p className="text-[11px] text-muted-foreground">You've saved $500 this month</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                  <span className="w-2 h-2 bg-warning rounded-full mt-2 inline-block" />
-                  <div>
-                    <p className="text-xs font-medium">Receipt Reminder</p>
-                    <p className="text-[11px] text-muted-foreground">Don't forget to scan today's receipts</p>
-                  </div>
-                </DropdownMenuItem>
+                <div className="text-center text-muted-foreground py-4 text-sm">
+                  No notifications yet
+                </div>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>

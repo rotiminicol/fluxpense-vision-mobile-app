@@ -84,56 +84,8 @@ const ExpensesPage: React.FC = () => {
     }
   };
 
-  const mockExpenses: Expense[] = [
-    {
-      id: '1',
-      amount: 45.99,
-      category: '🍔 Food & Dining',
-      description: 'Lunch at Cafe Plaza',
-      date: '2024-01-15',
-      type: 'expense' as const,
-      receipt: true
-    },
-    {
-      id: '2',
-      amount: 120.00,
-      category: '⛽ Transportation',
-      description: 'Gas Station Fill-up',
-      date: '2024-01-14',
-      type: 'expense' as const,
-      receipt: false
-    },
-    {
-      id: '3',
-      amount: 2500.00,
-      category: '💰 Income',
-      description: 'Salary Payment',
-      date: '2024-01-01',
-      type: 'income' as const,
-      receipt: false
-    },
-    {
-      id: '4',
-      amount: 89.50,
-      category: '🛒 Shopping',
-      description: 'Grocery Store',
-      date: '2024-01-13',
-      type: 'expense' as const,
-      receipt: true
-    },
-    {
-      id: '5',
-      amount: 25.00,
-      category: '☕ Coffee',
-      description: 'Starbucks Coffee',
-      date: '2024-01-12',
-      type: 'expense' as const,
-      receipt: true
-    }
-  ];
-
-  // Use real expenses if available, otherwise use mock data
-  const displayExpenses = expenses.length > 0 ? expenses : mockExpenses;
+  // Use only real expenses, no mock data
+  const displayExpenses = expenses;
 
   const categories = [...new Set(displayExpenses.map(e => e.category))];
 
@@ -158,7 +110,7 @@ const ExpensesPage: React.FC = () => {
             </div>
             <div className="flex flex-col justify-center">
               <span className="text-base font-extrabold text-blue-700 leading-tight">All Expenses</span>
-              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : `${displayExpenses.length} transactions`}</span>
+              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : `${displayExpenses.length} expenses`}</span>
             </div>
           </div>
           {/* Notification Dropdown */}
@@ -166,7 +118,6 @@ const ExpensesPage: React.FC = () => {
             <DropdownMenuTrigger asChild>
               <button className="relative p-1.5 rounded-full hover:bg-blue-100 transition-colors focus:outline-none">
                 <Bell className="w-5 h-5 text-blue-600" />
-                <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[10px] text-white flex items-center justify-center">3</span>
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
@@ -174,27 +125,9 @@ const ExpensesPage: React.FC = () => {
                 <h4 className="font-semibold text-sm">Notifications</h4>
               </div>
               <div className="max-h-48 overflow-y-auto">
-                <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                  <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-xs font-medium">Budget Alert</p>
-                    <p className="text-[11px] text-muted-foreground">You've used 85% of your monthly budget</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                  <div className="w-2 h-2 bg-success rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-xs font-medium">Goal Achieved!</p>
-                    <p className="text-[11px] text-muted-foreground">You've saved $500 this month</p>
-                  </div>
-                </DropdownMenuItem>
-                <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                  <div className="w-2 h-2 bg-warning rounded-full mt-2"></div>
-                  <div>
-                    <p className="text-xs font-medium">Receipt Reminder</p>
-                    <p className="text-[11px] text-muted-foreground">Don't forget to scan today's receipts</p>
-                  </div>
-                </DropdownMenuItem>
+                <div className="text-center text-muted-foreground py-4 text-sm">
+                  No notifications yet
+                </div>
               </div>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -261,7 +194,7 @@ const ExpensesPage: React.FC = () => {
               <div className="flex items-center justify-between w-full">
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">This Month</p>
-                  <p className="text-lg font-bold text-expense leading-tight">$255.49</p>
+                  <p className="text-lg font-bold text-expense leading-tight">${displayExpenses.filter(e => e.type === 'expense').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="w-8 h-8 bg-expense/10 rounded-lg flex items-center justify-center">
                   <TrendingDown className="w-4 h-4 text-expense" />
@@ -274,7 +207,7 @@ const ExpensesPage: React.FC = () => {
               <div className="flex items-center justify-between w-full">
                 <div>
                   <p className="text-xs text-muted-foreground mb-0.5">Income</p>
-                  <p className="text-lg font-bold text-income leading-tight">$2,500.00</p>
+                  <p className="text-lg font-bold text-income leading-tight">${displayExpenses.filter(e => e.type === 'income').reduce((sum, e) => sum + e.amount, 0).toLocaleString()}</p>
                 </div>
                 <div className="w-8 h-8 bg-income/10 rounded-lg flex items-center justify-center">
                   <TrendingUp className="w-4 h-4 text-income" />
@@ -319,9 +252,13 @@ const ExpensesPage: React.FC = () => {
           </CardHeader>
           <CardContent className="px-0 pt-0">
             <div className="space-y-2">
-              {filteredExpenses.length === 0 && (
-                <div className="text-center text-muted-foreground py-6 text-sm">No transactions found.</div>
-              )}
+              {loading ? (
+                <div className="text-center text-muted-foreground py-6 text-sm">Loading expenses...</div>
+              ) : filteredExpenses.length === 0 ? (
+                <div className="text-center text-muted-foreground py-6 text-sm">
+                  {displayExpenses.length === 0 ? "No expenses yet. Add your first one!" : "No expenses match your filters."}
+                </div>
+              ) : null}
               {filteredExpenses.map((expense) => (
                 <button
                   key={expense.id}

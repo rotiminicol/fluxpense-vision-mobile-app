@@ -41,18 +41,42 @@ const Dashboard: React.FC = () => {
   
   // Add state for balance visibility
   const [showBalance, setShowBalance] = useState(true);
-  const totalBalance = 1250.00;
-  const totalExpense = 14300.00;
-  const totalSalary = 12500.00;
-  const monthlyExpense = 2287.88;
+  const [totalBalance, setTotalBalance] = useState(0);
+  const [totalExpense, setTotalExpense] = useState(0);
+  const [totalIncome, setTotalIncome] = useState(0);
+  const [monthlyExpense, setMonthlyExpense] = useState(0);
   // Add state for selected transaction modal
   const [selectedTransaction, setSelectedTransaction] = useState<Expense & { method?: string; location?: string; tags?: string[]; receipt?: boolean } | null>(null);
   
   // Real data from backend
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [loading, setLoading] = useState(true);
+  const [profileImage, setProfileImage] = useState<string>('');
 
-  // Load real expenses from Supabase
+  // Load profile image
+  React.useEffect(() => {
+    const loadProfileImage = async () => {
+      if (!user) return;
+      
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('avatar_url')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile?.avatar_url) {
+          setProfileImage(profile.avatar_url);
+        }
+      } catch (error) {
+        console.error('Error loading profile image:', error);
+      }
+    };
+
+    loadProfileImage();
+  }, [user]);
+
+  // Load real expenses and calculate totals
   React.useEffect(() => {
     const loadExpenses = async () => {
       if (!user) return;
@@ -68,8 +92,7 @@ const Dashboard: React.FC = () => {
             categories(name)
           `)
           .eq('user_id', user.id)
-          .order('date', { ascending: false })
-          .limit(5);
+          .order('date', { ascending: false });
 
         if (error) throw error;
 
@@ -82,10 +105,23 @@ const Dashboard: React.FC = () => {
           type: 'expense' as const
         })) || [];
 
-        setExpenses(formattedExpenses);
+        // Calculate totals from real data
+        const totalExp = formattedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
+        const currentMonth = new Date().getMonth();
+        const currentYear = new Date().getFullYear();
+        
+        const monthlyExp = formattedExpenses.filter(exp => {
+          const expDate = new Date(exp.date);
+          return expDate.getMonth() === currentMonth && expDate.getFullYear() === currentYear;
+        }).reduce((sum, exp) => sum + exp.amount, 0);
+
+        // Set calculated values
+        setTotalExpense(totalExp);
+        setMonthlyExpense(monthlyExp);
+        setTotalBalance(totalIncome - totalExp); // Balance = Income - Expenses
+        setExpenses(formattedExpenses.slice(0, 5)); // Show only latest 5
       } catch (error) {
         console.error('Error loading expenses:', error);
-        // Fallback to empty array if no data
         setExpenses([]);
       } finally {
         setLoading(false);
@@ -93,7 +129,7 @@ const Dashboard: React.FC = () => {
     };
 
     loadExpenses();
-  }, [user]);
+  }, [user, totalIncome]);
 
   const currentMonth = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
   const monthlyBudget = 3000;
@@ -127,12 +163,11 @@ const Dashboard: React.FC = () => {
               <span className="text-xs text-muted-foreground mt-0.5">Welcome, {user?.email}</span>
             </div>
           </div>
-          {/* Notification Dropdown */}
+            {/* Notification Dropdown */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
               <button className="relative p-2 rounded-full hover:bg-blue-100 transition-colors focus:outline-none">
                 <Bell className="w-6 h-6 text-blue-600" />
-                <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary rounded-full text-xs text-white flex items-center justify-center">3</span>
               </button>
               </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-72 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
@@ -140,27 +175,9 @@ const Dashboard: React.FC = () => {
                   <h4 className="font-semibold">Notifications</h4>
                 </div>
                 <div className="max-h-64 overflow-y-auto">
-                  <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                    <div>
-                      <p className="text-sm font-medium">Budget Alert</p>
-                      <p className="text-xs text-muted-foreground">You've used 85% of your monthly budget</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                    <div className="w-2 h-2 bg-success rounded-full mt-2"></div>
-                    <div>
-                      <p className="text-sm font-medium">Goal Achieved!</p>
-                      <p className="text-xs text-muted-foreground">You've saved $500 this month</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-start space-x-3 p-3">
-                    <div className="w-2 h-2 bg-warning rounded-full mt-2"></div>
-                    <div>
-                      <p className="text-sm font-medium">Receipt Reminder</p>
-                      <p className="text-xs text-muted-foreground">Don't forget to scan today's receipts</p>
-                    </div>
-                  </DropdownMenuItem>
+                  <div className="text-center text-muted-foreground py-8 text-sm">
+                    No notifications yet
+                  </div>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -168,7 +185,11 @@ const Dashboard: React.FC = () => {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
               <button className="ml-2 p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors focus:outline-none flex items-center justify-center">
-                <User className="w-6 h-6 text-blue-700" />
+                {profileImage ? (
+                  <img src={profileImage} alt="Profile" className="w-6 h-6 rounded-full object-cover" />
+                ) : (
+                  <User className="w-6 h-6 text-blue-700" />
+                )}
               </button>
               </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
@@ -243,7 +264,7 @@ const Dashboard: React.FC = () => {
             <span className="flex items-center gap-2 text-xs font-semibold text-green-500/80 mb-1">
               <TrendingUp className="w-4 h-4 text-green-300/80" /> Total Salary
             </span>
-            <span className="text-xl font-extrabold text-green-700/80 tracking-tight">${totalSalary.toLocaleString()}</span>
+            <span className="text-xl font-extrabold text-green-700/80 tracking-tight">${totalIncome.toLocaleString()}</span>
           </motion.div>
           {/* Monthly Expense Card */}
           <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5, delay: 0.3 }}
@@ -284,7 +305,7 @@ const Dashboard: React.FC = () => {
               </div>
               <div className="flex flex-col items-center">
                 <span className="text-xs text-muted-foreground">Saved</span>
-                <span className="font-bold text-green-600 text-sm">${(totalSalary - totalExpense).toLocaleString()}</span>
+                <span className="font-bold text-green-600 text-sm">${(totalIncome - totalExpense).toLocaleString()}</span>
           </div>
               <div className="flex flex-col items-center">
                 <span className="text-xs text-muted-foreground">Budget</span>

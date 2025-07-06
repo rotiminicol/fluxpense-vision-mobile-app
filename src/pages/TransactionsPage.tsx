@@ -81,83 +81,8 @@ const TransactionsPage: React.FC = () => {
     }
   };
 
-  const mockTransactions = [
-    {
-      id: '1',
-      amount: 45.99,
-      category: '🍔 Food & Dining',
-      description: 'Lunch at Cafe Plaza',
-      date: '2024-01-15T12:30:00',
-      type: 'expense' as const,
-      method: 'Credit Card',
-      receipt: true,
-      location: 'Downtown',
-      tags: ['business', 'lunch']
-    },
-    {
-      id: '2',
-      amount: 120.00,
-      category: '⛽ Transportation',
-      description: 'Gas Station Fill-up',
-      date: '2024-01-14T08:15:00',
-      type: 'expense' as const,
-      method: 'Debit Card',
-      receipt: false,
-      location: 'Highway 101',
-      tags: ['commute']
-    },
-    {
-      id: '3',
-      amount: 2500.00,
-      category: '💰 Income',
-      description: 'Salary Payment',
-      date: '2024-01-01T09:00:00',
-      type: 'income' as const,
-      method: 'Bank Transfer',
-      receipt: false,
-      location: 'Direct Deposit',
-      tags: ['salary', 'monthly']
-    },
-    {
-      id: '4',
-      amount: 89.50,
-      category: '🛒 Shopping',
-      description: 'Grocery Store - Weekly Shopping',
-      date: '2024-01-13T16:45:00',
-      type: 'expense' as const,
-      method: 'Credit Card',
-      receipt: true,
-      location: 'Whole Foods Market',
-      tags: ['groceries', 'weekly']
-    },
-    {
-      id: '5',
-      amount: 25.00,
-      category: '☕ Coffee',
-      description: 'Starbucks Coffee & Pastry',
-      date: '2024-01-12T07:30:00',
-      type: 'expense' as const,
-      method: 'Mobile Pay',
-      receipt: true,
-      location: 'Main Street',
-      tags: ['coffee', 'morning']
-    },
-    {
-      id: '6',
-      amount: 150.00,
-      category: '🎬 Entertainment',
-      description: 'Movie Theater & Dinner',
-      date: '2024-01-11T19:00:00',
-      type: 'expense' as const,
-      method: 'Credit Card',
-      receipt: true,
-      location: 'Cinema Complex',
-      tags: ['entertainment', 'date']
-    }
-  ];
-
-  // Use real transactions if available, otherwise use mock data
-  const displayTransactions = transactions.length > 0 ? transactions : mockTransactions;
+  // Use only real transactions, no mock data
+  const displayTransactions = transactions;
 
   const filters = [
     { id: 'all', label: 'All Transactions' },
@@ -219,7 +144,7 @@ const TransactionsPage: React.FC = () => {
               </div>
               <div className="flex flex-col justify-center">
                 <span className="text-base font-extrabold text-blue-700 leading-tight">All Transactions</span>
-                <span className="text-xs text-muted-foreground mt-0.5">{filteredTransactions.length} transactions</span>
+                <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : `${filteredTransactions.length} transactions`}</span>
               </div>
             </div>
             {/* Notification Dropdown */}
@@ -227,7 +152,7 @@ const TransactionsPage: React.FC = () => {
               <DropdownMenuTrigger asChild>
                 <button className="relative p-1.5 rounded-full hover:bg-blue-100 transition-colors focus:outline-none">
                   <Bell className="w-5 h-5 text-blue-600" />
-                  <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[10px] text-white flex items-center justify-center">3</span>
+                  
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-64 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
@@ -235,27 +160,9 @@ const TransactionsPage: React.FC = () => {
                   <h4 className="font-semibold text-sm">Notifications</h4>
                 </div>
                 <div className="max-h-48 overflow-y-auto">
-                  <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                    <div className="w-2 h-2 bg-primary rounded-full mt-2"></div>
-                    <div>
-                      <p className="text-xs font-medium">Budget Alert</p>
-                      <p className="text-[11px] text-muted-foreground">You've used 85% of your monthly budget</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                    <div className="w-2 h-2 bg-success rounded-full mt-2"></div>
-                    <div>
-                      <p className="text-xs font-medium">Goal Achieved!</p>
-                      <p className="text-[11px] text-muted-foreground">You've saved $500 this month</p>
-                    </div>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem className="flex items-start space-x-2 p-2">
-                    <div className="w-2 h-2 bg-warning rounded-full mt-2"></div>
-                    <div>
-                      <p className="text-xs font-medium">Receipt Reminder</p>
-                      <p className="text-[11px] text-muted-foreground">Don't forget to scan today's receipts</p>
-                    </div>
-                  </DropdownMenuItem>
+                  <div className="text-center text-muted-foreground py-4 text-sm">
+                    No notifications yet
+                  </div>
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -300,7 +207,14 @@ const TransactionsPage: React.FC = () => {
         {/* Transaction list */}
         {/* Transaction list: stretch cards, add padding, more spacing */}
         <div className="flex flex-col gap-3 mb-2">
-          {filteredTransactions.map(transaction => (
+          {loading ? (
+            <div className="text-center text-muted-foreground py-8 text-sm">Loading transactions...</div>
+          ) : filteredTransactions.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8 text-sm">
+              {displayTransactions.length === 0 ? "No transactions yet. Add your first expense!" : "No transactions match your filters."}
+            </div>
+          ) : (
+            filteredTransactions.map(transaction => (
             <motion.div key={transaction.id} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.3 }}>
               <button className="w-full text-left" onClick={() => setOpenTransaction(transaction)}>
                 <Card className="bg-white/80 backdrop-blur rounded-2xl shadow p-4 flex items-center gap-4 w-full hover:bg-blue-50/60 transition-all">
@@ -325,7 +239,8 @@ const TransactionsPage: React.FC = () => {
                 </Card>
               </button>
             </motion.div>
-          ))}
+            ))
+          )}
         </div>
         {/* Full-screen glassy overlay for transaction details */}
         {/* Full-screen glassy overlay for transaction details: center content, fill space */}
