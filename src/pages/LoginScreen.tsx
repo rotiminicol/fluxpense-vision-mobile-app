@@ -64,12 +64,32 @@ const LoginScreen: React.FC = () => {
         description: "You have successfully logged in.",
       });
       navigate('/dashboard');
-    } catch (error) {
-      toast({
-        title: "Login failed",
-        description: "Please check your credentials and try again.",
-        variant: "destructive",
-      });
+    } catch (error: any) { // Added :any to error
+      if (error.message === 'EMAIL_NOT_VERIFIED') {
+        toast({
+          title: "Email Not Verified",
+          description: (
+            <div>
+              Please verify your email before logging in. Check your inbox for the verification link.
+              <Button
+                variant="link"
+                className="p-0 h-auto text-primary font-semibold ml-1"
+                onClick={() => navigate('/email-verification', { state: { email: formData.email }})}
+              >
+                Resend verification?
+              </Button>
+            </div>
+          ),
+          variant: "destructive",
+          duration: 7000, // Allow more time for user to click link
+        });
+      } else {
+        toast({
+          title: "Login failed",
+          description: error.message || "Please check your credentials and try again.",
+          variant: "destructive",
+        });
+      }
     }
   };
 

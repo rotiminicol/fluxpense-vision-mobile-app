@@ -39,7 +39,7 @@ function App() {
             <Route path="/login" element={<LoginScreen />} />
             <Route path="/signup" element={<SignupScreen />} />
             <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
-            <Route path="/verify-email" element={<EmailVerificationPage />} />
+            <Route path="/email-verification" element={<EmailVerificationPage />} />
             <Route path="/onboarding" element={<OnboardingScreen />} />
             
             {/* Protected Routes */}

@@ -6,11 +6,21 @@ import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
-import { ArrowLeft, Eye, EyeOff, Mail, User, Lock } from 'lucide-react';
+import { ArrowLeft, Eye, EyeOff, Mail, User, Lock, AlertCircle, RotateCcw, Loader2 } from 'lucide-react'; // Added AlertCircle, RotateCcw, Loader2
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
 import { motion } from 'framer-motion';
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogClose } from '@/components/ui/dialog';
+import {
+  Dialog,
+  DialogTrigger,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter, // Added DialogFooter
+  DialogClose
+} from '@/components/ui/dialog';
 import { GoogleOAuthModal } from '@/components/ui/GoogleOAuthModal';
+import { supabase } from '@/integrations/supabase/client'; // For resend email
 
 const SignupScreen: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +38,8 @@ const SignupScreen: React.FC = () => {
   const [agreedToTerms, setAgreedToTerms] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [googleOpen, setGoogleOpen] = useState(false);
+  const [showVerificationModal, setShowVerificationModal] = useState(false); // New state for modal
+  const [isResendingEmail, setIsResendingEmail] = useState(false); // State for resend button
   const termsRef = React.useRef<HTMLDivElement>(null);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -93,14 +105,35 @@ const SignupScreen: React.FC = () => {
 
     try {
       await signup(formData.email, formData.password, formData.name);
-      toast({
-        title: "Account created successfully!",
-        description: "Welcome to FluxPense. Let's get you set up.",
-      });
-      navigate('/onboarding');
-    } catch (error) {
+      // Don't toast or navigate immediately. Show verification modal instead.
+      setShowVerificationModal(true);
+    } catch (error: any) {
       toast({
         title: "Signup failed",
+        description: error.message || "Please try again with different credentials.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleResendVerificationEmail = async () => {
+    setIsResendingEmail(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: formData.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/email-verification`
+        }
+      });
+      if (error) throw error;
+      toast({
+        title: 'Verification Email Resent',
+        description: `A new verification email has been sent to ${formData.email}.`,
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Failed to Resend Email',
         description: "Please try again with different credentials.",
         variant: "destructive",
       });
@@ -346,6 +379,50 @@ const SignupScreen: React.FC = () => {
           </motion.div>
         </div>
       </div>
+
+      {/* Email Verification Modal */}
+      <Dialog open={showVerificationModal} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+          setShowVerificationModal(false);
+          navigate('/login'); // Navigate to login when modal is closed
+        } else {
+          setShowVerificationModal(true);
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex justify-center mb-4">
+                <Mail className="w-12 h-12 text-primary" />
+            </div>
+            <DialogTitle className="text-center text-xl font-bold">Verify Your Email</DialogTitle>
+            <DialogDescription className="text-center text-muted-foreground pt-2">
+              An email has been sent to <span className="font-semibold text-foreground">{formData.email}</span>.
+              Please click the link in the email to verify your account and complete your signup.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex flex-col sm:flex-row gap-2 pt-4">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleResendVerificationEmail}
+              disabled={isResendingEmail}
+              className="w-full"
+            >
+              {isResendingEmail ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <RotateCcw className="mr-2 h-4 w-4" />
+              )}
+              Resend Email
+            </Button>
+            <DialogClose asChild>
+              <Button type="button" className="w-full primary-button" onClick={() => navigate('/login')}>
+                Okay
+              </Button>
+            </DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
