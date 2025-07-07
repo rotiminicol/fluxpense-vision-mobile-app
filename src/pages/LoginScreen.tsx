@@ -54,17 +54,27 @@ const LoginScreen: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    console.log('[LoginScreen] handleSubmit: Form submitted. Current form data:', formData, 'Current isLoading from useAuth():', isLoading);
     
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      console.log('[LoginScreen] handleSubmit: Form validation failed. Errors:', errors);
+      return;
+    }
 
+    console.log('[LoginScreen] handleSubmit: Form validated. Calling login function from AuthContext.');
     try {
       await login(formData.email, formData.password);
+      // If login resolves successfully, it means email was verified and onAuthStateChange should have updated context.
+      // isLoading should become false via onAuthStateChange.
+      console.log('[LoginScreen] handleSubmit: login() promise resolved. Current isLoading from useAuth():', isLoading); // Log isLoading *after* await
       toast({
         title: "Welcome back!",
         description: "You have successfully logged in.",
       });
+      console.log('[LoginScreen] handleSubmit: Navigating to /dashboard.');
       navigate('/dashboard');
-    } catch (error: any) { // Added :any to error
+    } catch (error: any) {
+      console.error('[LoginScreen] handleSubmit: Catch block. Error:', error.message, 'Current isLoading from useAuth():', isLoading);
       if (error.message === 'EMAIL_NOT_VERIFIED') {
         toast({
           title: "Email Not Verified",
@@ -81,7 +91,7 @@ const LoginScreen: React.FC = () => {
             </div>
           ),
           variant: "destructive",
-          duration: 7000, // Allow more time for user to click link
+          duration: 7000,
         });
       } else {
         toast({

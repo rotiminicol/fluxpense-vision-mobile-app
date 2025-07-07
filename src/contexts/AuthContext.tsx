@@ -39,16 +39,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     let initialAuthCheckCompleted = false; // Flag to ensure fallbacks only run if needed for initial load
+    console.log('[AuthContext] useEffect setup initiated. Current isLoading:', isLoading);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('[AuthContext] onAuthStateChange triggered. Event:', event, 'Session User Email:', session?.user?.email, 'Email Confirmed:', session?.user?.email_confirmed_at, 'Current isLoading before processing:', isLoading);
         try {
-          console.log('Auth state changed:', event, session?.user?.email, 'email_confirmed_at:', session?.user?.email_confirmed_at);
+          // console.log('Auth state changed:', event, session?.user?.email, 'email_confirmed_at:', session?.user?.email_confirmed_at); // Original log
 
           if (session?.user) {
             // If user is signing in but their email is not confirmed, sign them out immediately.
             if (event === 'SIGNED_IN' && !session.user.email_confirmed_at) {
-              console.log('User signed in but email not confirmed. Signing out.');
+              console.log('[AuthContext] onAuthStateChange: User signed in but email NOT confirmed. Signing out. User:', session.user.id);
               await supabase.auth.signOut();
               // setUser(null) will be handled by the subsequent 'SIGNED_OUT' event from onAuthStateChange
               // setSession(null) also by 'SIGNED_OUT'
@@ -58,9 +60,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
 
             // Proceed with setting user if email is confirmed or if it's not a SIGNED_IN event (e.g. TOKEN_REFRESHED, USER_UPDATED)
+            console.log('[AuthContext] onAuthStateChange: Processing valid session for user:', session.user.id);
             setSession(session); // Set session here for all valid session events
 
             if (event === 'SIGNED_IN' && session.user.email_confirmed_at) { // Only create notification if fully signed in and confirmed
+              console.log('[AuthContext] onAuthStateChange: User SIGNED_IN and email confirmed. Creating notification.');
               supabase.from('notifications').insert({
                 user_id: session.user.id,
                 title: 'Welcome back!',
@@ -71,6 +75,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               });
             }
 
+            console.log('[AuthContext] onAuthStateChange: Fetching profile for user:', session.user.id);
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('onboarding_completed, full_name')
@@ -78,72 +83,79 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               .single();
 
             if (profileError) {
-              console.error("Error fetching profile:", profileError);
+              console.error("[AuthContext] onAuthStateChange: Error fetching profile:", profileError);
             }
 
-            setUser({
+            const userData = {
               id: session.user.id,
               email: session.user.email || '',
               name: profile?.full_name || session.user.email?.split('@')[0] || '',
               isFirstLogin: !profile?.onboarding_completed,
               emailConfirmed: !!session.user.email_confirmed_at
-            });
+            };
+            console.log('[AuthContext] onAuthStateChange: Setting user state:', userData);
+            setUser(userData);
           } else {
+            console.log('[AuthContext] onAuthStateChange: No session user, setting user to null.');
             setUser(null);
           }
-        } catch (e) { // Renamed error variable
-          console.error("Error in onAuthStateChange callback:", e);
+        } catch (e: any) {
+          console.error("[AuthContext] onAuthStateChange: Error in try block:", e.message, e.stack);
           setUser(null);
         } finally {
-          setIsLoading(false); // Always set isLoading to false after any auth event or initial check
+          console.log('[AuthContext] onAuthStateChange: Finally block. Setting isLoading to false. Was:', isLoading);
+          setIsLoading(false);
           if (!initialAuthCheckCompleted) {
-            initialAuthCheckCompleted = true; // Mark that the initial auth check via onAuthStateChange has run
+            console.log('[AuthContext] onAuthStateChange: Marking initial auth check as completed.');
+            initialAuthCheckCompleted = true;
           }
         }
       }
     );
 
-    // Get initial session. onAuthStateChange will fire based on this.
+    console.log('[AuthContext] useEffect: Calling getSession.');
     supabase.auth.getSession()
-      .then(({ error: getSessionError }) => { // Renamed to avoid conflict
+      .then(({ data: { session }, error: getSessionError }) => {
         if (getSessionError) {
-          console.error("Error getting initial session:", getSessionError);
-          // Fallback: if getSession errors AND onAuthStateChange hasn't already run for the initial check
+          console.error("[AuthContext] getSession: Error getting initial session:", getSessionError);
           if (!initialAuthCheckCompleted) {
+            console.log('[AuthContext] getSession: Error fallback, setting isLoading to false.');
             setIsLoading(false);
             initialAuthCheckCompleted = true;
           }
+        } else {
+          console.log('[AuthContext] getSession: Success. Session:', session ? session.user?.id : 'null', 'onAuthStateChange will handle further processing.');
         }
-        // If no error, onAuthStateChange is expected to handle setting isLoading and the flag.
       })
-      .catch(criticalError => { // Renamed error variable
-        console.error("Critical error in getSession promise chain:", criticalError);
-        // Critical Fallback:
+      .catch(criticalError => {
+        console.error("[AuthContext] getSession: Critical error in promise chain:", criticalError);
         if (!initialAuthCheckCompleted) {
+          console.log('[AuthContext] getSession: Critical error fallback, setting isLoading to false.');
           setIsLoading(false);
           initialAuthCheckCompleted = true;
         }
       });
 
-    // Additional safety net for initial load:
-    // If after a short delay, onAuthStateChange hasn't completed the initial check, force isLoading to false.
     const safetyNetTimeout = setTimeout(() => {
       if (!initialAuthCheckCompleted) {
-        console.warn("AuthContext: Safety net triggered to set isLoading to false.");
+        console.warn("[AuthContext] Safety net timeout: Initial auth check not completed, forcing isLoading to false. Was:", isLoading);
         setIsLoading(false);
         initialAuthCheckCompleted = true;
       }
-    }, 3000); // 3 seconds timeout
+    }, 5000); // Increased timeout slightly for very slow networks
 
     return () => {
+      console.log('[AuthContext] useEffect cleanup: Unsubscribing from onAuthStateChange and clearing safety net timeout.');
       subscription.unsubscribe();
       clearTimeout(safetyNetTimeout);
     };
   }, []);
 
   const login = async (email: string, password: string) => {
+    console.log('[AuthContext] login: Attempting login for email:', email, 'Current isLoading:', isLoading);
     setIsLoading(true);
     try {
+      console.log('[AuthContext] login: Calling signInWithPassword.');
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -186,47 +198,35 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       // However, the LoginScreen button itself should become enabled once its own isLoading (from useAuth()) becomes false.
 
       // The most direct fix if login button itself remains stuck after successful login (and verified):
-      // is to ensure login() itself also sets isLoading to false on non-error path.
-      // This is a slight deviation from pure reliance on onAuthStateChange for this.
-      if (signInData.user && signInData.user.email_confirmed_at) {
-        // Successfully signed in and email is confirmed.
-        // onAuthStateChange will handle setting the user.
-        // We can set isLoading to false here to make the login button responsive faster.
-        // Note: This means onAuthStateChange might set it to false again, which is fine.
-        // Let's test this specific change.
-        // setIsLoading(false); // Tentatively add this.
-        // No, the original design is that onAuthStateChange is the single source of truth for isLoading after an event.
-        // The issue is more likely that the LoginScreen isn't correctly re-rendering or picking up the isLoading change.
 
-        // The login function should resolve, and LoginScreen should see isLoading become false via useAuth().
-        // If it's not, the problem is subtle.
-
-        // Let's stick to the principle that onAuthStateChange's finally block handles this.
-        // The previous analysis of onAuthStateChange's finally block suggests it *is* robust.
-
-        // What if the navigation in LoginScreen happens too fast?
-        // `await login(...)` means LoginScreen waits for the login promise.
-        // The login promise resolves *after* signInWithPassword but *before* onAuthStateChange fully completes usually.
-        // This is the standard Supabase pattern.
-
-        // If the login button remains stuck, it's because the `isLoading` state from `useAuth()`
-        // in `LoginScreen.tsx` is not updating. This points to `onAuthStateChange` not
-        // setting `setIsLoading(false)` or `LoginScreen` not re-rendering.
-        // The `finally` block in `onAuthStateChange` is the most reliable place.
-
-        // No change here for now, let's ensure other parts are correct. The existing logic for isLoading
-        // in onAuthStateChange's finally block is designed to be the primary place it's set to false.
-        // Adding setIsLoading(false) in login() success path might cause race conditions or hide other issues.
+      if (signInError) {
+        console.error('[AuthContext] login: signInWithPassword error:', signInError.message);
+        throw signInError;
       }
-      // If email is verified, onAuthStateChange will handle setting the user state
-      // and isLoading will be set to false in its finally block.
-      // No need to setIsLoading(false) here on success path as onAuthStateChange handles it.
+
+      console.log('[AuthContext] login: signInWithPassword successful. User:', signInData.user?.id, 'Email confirmed:', signInData.user?.email_confirmed_at);
+
+      // After successful signIn, check if email is confirmed.
+      if (signInData.user && !signInData.user.email_confirmed_at) {
+        console.log('[AuthContext] login: Email NOT verified for user:', signInData.user.id, 'Signing out.');
+        await supabase.auth.signOut();
+        throw new Error('EMAIL_NOT_VERIFIED');
+      }
+
+      // If email is verified, onAuthStateChange is now responsible for setting the user
+      // and for setting isLoading to false via its finally block.
+      // The login function's promise will resolve, and LoginScreen will await this.
+      // The button state will update once isLoading from useAuth() becomes false.
+      console.log('[AuthContext] login: Login attempt successful (or EMAIL_NOT_VERIFIED thrown). isLoading will be handled by onAuthStateChange.');
 
     } catch (error: any) {
-      setIsLoading(false); // Ensure loading is false on any error from login attempt
+      console.error('[AuthContext] login: Catch block. Error message:', error.message, 'Current isLoading before setIsloading(false):', isLoading);
+      setIsLoading(false);
       if (error.message === 'EMAIL_NOT_VERIFIED') {
-        throw error; // Re-throw specific error
+        console.log('[AuthContext] login: Re-throwing EMAIL_NOT_VERIFIED error.');
+        throw error;
       }
+      console.log('[AuthContext] login: Throwing generic login error.');
       throw new Error(error.message || 'Login failed');
     }
   };
