@@ -1,6 +1,7 @@
+
 import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import LoginScreen from './pages/LoginScreen';
 import SignupScreen from './pages/SignupScreen';
 import ForgotPasswordScreen from './pages/ForgotPasswordScreen';
@@ -17,6 +18,7 @@ import HelpPage from './pages/HelpPage';
 import WelcomeScreen from './pages/WelcomeScreen';
 import NotFound from './pages/NotFound';
 import { Toaster } from '@/components/ui/toaster';
+import EmailVerificationPage from '@/pages/EmailVerificationPage';
 
 // A wrapper for <Route> that redirects to the login
 // screen if you're not yet authenticated.
@@ -24,8 +26,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   return auth.isAuthenticated ? children : <Navigate to="/login" />;
 }
-
-import EmailVerificationPage from '@/pages/EmailVerificationPage';
 
 function App() {
   return (
