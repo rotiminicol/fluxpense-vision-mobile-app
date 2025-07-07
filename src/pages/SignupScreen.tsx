@@ -134,9 +134,11 @@ const SignupScreen: React.FC = () => {
     } catch (error: any) {
       toast({
         title: 'Failed to Resend Email',
-        description: "Please try again with different credentials.",
+        description: error.message || "An error occurred. Please try again.", // More generic error
         variant: "destructive",
       });
+    } finally { // Ensure finally block is here
+      setIsResendingEmail(false);
     }
   };
 
@@ -381,14 +383,7 @@ const SignupScreen: React.FC = () => {
       </div>
 
       {/* Email Verification Modal */}
-      <Dialog open={showVerificationModal} onOpenChange={(isOpen) => {
-        if (!isOpen) {
-          setShowVerificationModal(false);
-          navigate('/login'); // Navigate to login when modal is closed
-        } else {
-          setShowVerificationModal(true);
-        }
-      }}>
+      <Dialog open={showVerificationModal} onOpenChange={setShowVerificationModal}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <div className="flex justify-center mb-4">
@@ -415,12 +410,26 @@ const SignupScreen: React.FC = () => {
               )}
               Resend Email
             </Button>
-            <DialogClose asChild>
-              <Button type="button" className="w-full primary-button" onClick={() => navigate('/login')}>
-                Okay
-              </Button>
-            </DialogClose>
+            <Button
+              type="button"
+              className="w-full primary-button"
+              onClick={() => {
+                setShowVerificationModal(false); // Close the modal
+                navigate('/email-verification', { state: { email: formData.email } }); // Navigate
+              }}
+            >
+              I've Verified My Email
+            </Button>
           </DialogFooter>
+           {/* Add a close button to the dialog content if not relying on overlay click or Esc,
+               or ensure onOpenChange handles all close events appropriately if user should go to /login.
+               For now, this setup means closing via Esc/Overlay will just hide the modal without navigation.
+               The "I've Verified" button handles its own navigation.
+               If the requirement is that *any* close of this modal (Esc, overlay) goes to /login,
+               then the original onOpenChange was better, but the "I've Verified" button needed to stop propagation
+               or use a flag to prevent the /login navigation.
+               This simpler onOpenChange={setShowVerificationModal} means only explicit button actions cause navigation.
+            */}
         </DialogContent>
       </Dialog>
     </div>

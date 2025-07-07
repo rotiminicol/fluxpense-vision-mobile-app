@@ -158,6 +158,66 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // We throw a specific error that LoginScreen can catch
         throw new Error('EMAIL_NOT_VERIFIED');
       }
+      // If email is verified, onAuthStateChange will handle setting the user state.
+      // However, to ensure isLoading is reset promptly by the login function itself on success:
+      // This might be slightly redundant if onAuthStateChange is very fast, but adds robustness.
+      // Check if user is now set by onAuthStateChange (or session is active)
+      // This check is a bit tricky here because login function doesn't directly wait for onAuthStateChange.
+      // For now, let's assume onAuthStateChange will set isLoading.
+      // The problem might be if onAuthStateChange has an error AFTER setting the user but before its finally.
+      // The existing finally in onAuthStateChange should cover it.
+
+      // Let's reconsider: the login function's primary job is to attempt login.
+      // If it succeeds and doesn't throw, it means Supabase accepted credentials.
+      // onAuthStateChange is responsible for the aftermath, including isLoading.
+      // The current structure *should* work.
+
+      // If login is still stuck, it implies onAuthStateChange's finally block isn't running or is delayed
+      // *after a successful login*.
+
+      // One possible scenario:
+      // 1. login() sets isLoading = true
+      // 2. signInWithPassword() succeeds (email verified)
+      // 3. login() finishes, promise resolves.
+      // 4. LoginScreen navigates to /dashboard.
+      // 5. onAuthStateChange runs, sets user, and in finally sets isLoading = false.
+      // If LoginScreen navigates *before* onAuthStateChange's finally block, then isLoading might be true
+      // when the dashboard loads, if other components rely on this isLoading from AuthContext.
+      // However, the LoginScreen button itself should become enabled once its own isLoading (from useAuth()) becomes false.
+
+      // The most direct fix if login button itself remains stuck after successful login (and verified):
+      // is to ensure login() itself also sets isLoading to false on non-error path.
+      // This is a slight deviation from pure reliance on onAuthStateChange for this.
+      if (signInData.user && signInData.user.email_confirmed_at) {
+        // Successfully signed in and email is confirmed.
+        // onAuthStateChange will handle setting the user.
+        // We can set isLoading to false here to make the login button responsive faster.
+        // Note: This means onAuthStateChange might set it to false again, which is fine.
+        // Let's test this specific change.
+        // setIsLoading(false); // Tentatively add this.
+        // No, the original design is that onAuthStateChange is the single source of truth for isLoading after an event.
+        // The issue is more likely that the LoginScreen isn't correctly re-rendering or picking up the isLoading change.
+
+        // The login function should resolve, and LoginScreen should see isLoading become false via useAuth().
+        // If it's not, the problem is subtle.
+
+        // Let's stick to the principle that onAuthStateChange's finally block handles this.
+        // The previous analysis of onAuthStateChange's finally block suggests it *is* robust.
+
+        // What if the navigation in LoginScreen happens too fast?
+        // `await login(...)` means LoginScreen waits for the login promise.
+        // The login promise resolves *after* signInWithPassword but *before* onAuthStateChange fully completes usually.
+        // This is the standard Supabase pattern.
+
+        // If the login button remains stuck, it's because the `isLoading` state from `useAuth()`
+        // in `LoginScreen.tsx` is not updating. This points to `onAuthStateChange` not
+        // setting `setIsLoading(false)` or `LoginScreen` not re-rendering.
+        // The `finally` block in `onAuthStateChange` is the most reliable place.
+
+        // No change here for now, let's ensure other parts are correct. The existing logic for isLoading
+        // in onAuthStateChange's finally block is designed to be the primary place it's set to false.
+        // Adding setIsLoading(false) in login() success path might cause race conditions or hide other issues.
+      }
       // If email is verified, onAuthStateChange will handle setting the user state
       // and isLoading will be set to false in its finally block.
       // No need to setIsLoading(false) here on success path as onAuthStateChange handles it.

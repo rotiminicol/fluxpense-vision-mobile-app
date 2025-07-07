@@ -53,10 +53,12 @@ const EmailVerificationPage: React.FC = () => {
     if (user) {
       if (user.emailConfirmed) {
         setStatus('verified');
-        toast({ title: "Email Verified!", description: "Redirecting you now..." });
+        const destination = user.isFirstLogin ? '/onboarding' : '/dashboard';
+        const message = user.isFirstLogin ? "Redirecting to onboarding..." : "Redirecting to dashboard...";
+        toast({ title: "Email Verified!", description: message });
         setTimeout(() => {
-          navigate('/dashboard', { replace: true }); // Or to /login
-        }, 2000);
+          navigate(destination, { replace: true });
+        }, 2500); // Slightly longer for toast to be read
       } else {
         // User exists but email not confirmed. This page might be visited directly.
         // Or link was clicked but something went wrong before email_confirmed was set.
