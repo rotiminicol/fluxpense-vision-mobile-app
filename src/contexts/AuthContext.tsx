@@ -43,11 +43,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
-          console.log('Auth state changed:', event, session?.user?.email);
-          setSession(session);
+          console.log('Auth state changed:', event, session?.user?.email, 'email_confirmed_at:', session?.user?.email_confirmed_at);
 
           if (session?.user) {
-            if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+            // If user is signing in but their email is not confirmed, sign them out immediately.
+            if (event === 'SIGNED_IN' && !session.user.email_confirmed_at) {
+              console.log('User signed in but email not confirmed. Signing out.');
+              await supabase.auth.signOut();
+              // setUser(null) will be handled by the subsequent 'SIGNED_OUT' event from onAuthStateChange
+              // setSession(null) also by 'SIGNED_OUT'
+              // No need to set isLoading(false) here, finally block or SIGNED_OUT will do it.
+              // We want the login function to throw an error in this case.
+              return; // Exit early, the SIGNED_OUT event will clean up.
+            }
+
+            // Proceed with setting user if email is confirmed or if it's not a SIGNED_IN event (e.g. TOKEN_REFRESHED, USER_UPDATED)
+            setSession(session); // Set session here for all valid session events
+
+            if (event === 'SIGNED_IN' && session.user.email_confirmed_at) { // Only create notification if fully signed in and confirmed
               supabase.from('notifications').insert({
                 user_id: session.user.id,
                 title: 'Welcome back!',
@@ -131,14 +144,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const login = async (email: string, password: string) => {
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
       
-      if (error) throw error;
+      if (signInError) throw signInError;
+
+      // After successful signIn, check if email is confirmed.
+      // signInWithPassword response includes user, check user.email_confirmed_at
+      if (signInData.user && !signInData.user.email_confirmed_at) {
+        await supabase.auth.signOut(); // Sign out the user
+        // We throw a specific error that LoginScreen can catch
+        throw new Error('EMAIL_NOT_VERIFIED');
+      }
+      // If email is verified, onAuthStateChange will handle setting the user state
+      // and isLoading will be set to false in its finally block.
+      // No need to setIsLoading(false) here on success path as onAuthStateChange handles it.
+
     } catch (error: any) {
-      setIsLoading(false);
+      setIsLoading(false); // Ensure loading is false on any error from login attempt
+      if (error.message === 'EMAIL_NOT_VERIFIED') {
+        throw error; // Re-throw specific error
+      }
       throw new Error(error.message || 'Login failed');
     }
   };
@@ -146,13 +174,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/dashboard`;
+      // const redirectUrl = `${window.location.origin}/dashboard`; // Old redirect
+      const verificationRedirectUrl = `${window.location.origin}/email-verification`;
       
       const { error } = await supabase.auth.signUp({
         email,
         password,
         options: {
-          emailRedirectTo: redirectUrl,
+          emailRedirectTo: verificationRedirectUrl,
           data: {
             full_name: name,
           }
