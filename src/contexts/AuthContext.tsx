@@ -41,46 +41,70 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        console.log('Auth state changed:', event, session?.user?.email);
-        setSession(session);
-        
-        if (session?.user) {
-          // Create notification for login (except during signup)
-          if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
-            setTimeout(() => {
+        try {
+          console.log('Auth state changed:', event, session?.user?.email);
+          setSession(session);
+
+          if (session?.user) {
+            // Create notification for login (except during signup)
+            if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+              // Non-critical, so allow to fail silently or add specific error handling if needed
               supabase.from('notifications').insert({
                 user_id: session.user.id,
                 title: 'Welcome back!',
                 message: `Welcome back to FluxPense, ${session.user.email}!`,
                 type: 'info'
+              }).then(({ error }) => {
+                if (error) console.error('Error creating notification:', error);
               });
-            }, 0);
+            }
+
+            // Check if user has completed onboarding
+            const { data: profile, error: profileError } = await supabase
+              .from('profiles')
+              .select('onboarding_completed, full_name')
+              .eq('user_id', session.user.id)
+              .single();
+
+            if (profileError) {
+              console.error("Error fetching profile:", profileError);
+              // Potentially set a default/error state for user or logout
+              // For now, we'll proceed to set user with available info
+            }
+
+            setUser({
+              id: session.user.id,
+              email: session.user.email || '',
+              name: profile?.full_name || session.user.email?.split('@')[0] || '',
+              isFirstLogin: !profile?.onboarding_completed,
+              emailConfirmed: !!session.user.email_confirmed_at
+            });
+          } else {
+            setUser(null);
           }
-          
-          // Check if user has completed onboarding
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('onboarding_completed, full_name')
-            .eq('user_id', session.user.id)
-            .single();
-          
-          setUser({
-            id: session.user.id,
-            email: session.user.email || '',
-            name: profile?.full_name || session.user.email?.split('@')[0] || '',
-            isFirstLogin: !profile?.onboarding_completed,
-            emailConfirmed: !!session.user.email_confirmed_at
-          });
-        } else {
+        } catch (error) {
+          console.error("Error in onAuthStateChange callback:", error);
+          // Ensure user is clear if an unexpected error occurs
           setUser(null);
+        } finally {
+          setIsLoading(false);
         }
-        setIsLoading(false);
       }
     );
 
     // Get initial session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      // Initial session handling is done by the auth state change listener
+    // The onAuthStateChange listener will be triggered by getSession's resolution,
+    // or by the initial state check if a session already exists.
+    supabase.auth.getSession().then(({ data: { session }, error }) => {
+      if (error) {
+        console.error("Error getting initial session:", error);
+        // If getSession itself fails catastrophically,
+        // onAuthStateChange might not fire as expected.
+        // Ensure isLoading is false in this scenario too.
+        setIsLoading(false);
+      }
+      // If session is null and no error, onAuthStateChange will handle it.
+      // If session exists, onAuthStateChange will handle it.
     });
 
     return () => subscription.unsubscribe();
