@@ -59,7 +59,11 @@ const Dashboard: React.FC = () => {
   const [recentExpenses, setRecentExpenses] = useState<Expense[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalInitialMethod, setModalInitialMethod] = useState<EntryMethod | undefined>(undefined);
   const [loading, setLoading] = useState(true);
+
+  // Define EntryMethod type locally or import from ExpenseEntryModal if exported
+  type EntryMethod = 'selection' | 'manual' | 'scan' | 'upload' | 'email';
 
   useEffect(() => {
     if (user) {
@@ -161,8 +165,15 @@ const Dashboard: React.FC = () => {
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
-  const handleQuickAdd = () => {
+  const handleQuickAdd = (method?: EntryMethod) => {
+    setModalInitialMethod(method || 'selection');
     setIsModalOpen(true);
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    // Optionally reset modalInitialMethod if desired, though ExpenseEntryModal handles its own reset
+    // setModalInitialMethod(undefined);
   };
 
   const handleExpenseAdded = () => {
@@ -394,8 +405,9 @@ const Dashboard: React.FC = () => {
       {/* Expense Entry Modal */}
       <ExpenseEntryModal
         isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={handleModalClose}
         onExpenseAdded={handleExpenseAdded}
+        initialMethod={modalInitialMethod}
       />
 
       {/* Bottom Navigation */}

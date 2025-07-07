@@ -38,7 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
+    let initialAuthCheckCompleted = false; // Flag to ensure fallbacks only run if needed for initial load
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         try {
@@ -46,20 +47,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setSession(session);
 
           if (session?.user) {
-            // Create notification for login (except during signup)
             if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
-              // Non-critical, so allow to fail silently or add specific error handling if needed
               supabase.from('notifications').insert({
                 user_id: session.user.id,
                 title: 'Welcome back!',
                 message: `Welcome back to FluxPense, ${session.user.email}!`,
                 type: 'info'
-              }).then(({ error }) => {
-                if (error) console.error('Error creating notification:', error);
+              }).then(({ error: notificationError }) => { // Renamed to avoid conflict
+                if (notificationError) console.error('Error creating notification:', notificationError);
               });
             }
 
-            // Check if user has completed onboarding
             const { data: profile, error: profileError } = await supabase
               .from('profiles')
               .select('onboarding_completed, full_name')
@@ -68,8 +66,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
             if (profileError) {
               console.error("Error fetching profile:", profileError);
-              // Potentially set a default/error state for user or logout
-              // For now, we'll proceed to set user with available info
             }
 
             setUser({
@@ -82,32 +78,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             setUser(null);
           }
-        } catch (error) {
-          console.error("Error in onAuthStateChange callback:", error);
-          // Ensure user is clear if an unexpected error occurs
+        } catch (e) { // Renamed error variable
+          console.error("Error in onAuthStateChange callback:", e);
           setUser(null);
         } finally {
-          setIsLoading(false);
+          setIsLoading(false); // Always set isLoading to false after any auth event or initial check
+          if (!initialAuthCheckCompleted) {
+            initialAuthCheckCompleted = true; // Mark that the initial auth check via onAuthStateChange has run
+          }
         }
       }
     );
 
-    // Get initial session
-    // The onAuthStateChange listener will be triggered by getSession's resolution,
-    // or by the initial state check if a session already exists.
-    supabase.auth.getSession().then(({ data: { session }, error }) => {
-      if (error) {
-        console.error("Error getting initial session:", error);
-        // If getSession itself fails catastrophically,
-        // onAuthStateChange might not fire as expected.
-        // Ensure isLoading is false in this scenario too.
-        setIsLoading(false);
-      }
-      // If session is null and no error, onAuthStateChange will handle it.
-      // If session exists, onAuthStateChange will handle it.
-    });
+    // Get initial session. onAuthStateChange will fire based on this.
+    supabase.auth.getSession()
+      .then(({ error: getSessionError }) => { // Renamed to avoid conflict
+        if (getSessionError) {
+          console.error("Error getting initial session:", getSessionError);
+          // Fallback: if getSession errors AND onAuthStateChange hasn't already run for the initial check
+          if (!initialAuthCheckCompleted) {
+            setIsLoading(false);
+            initialAuthCheckCompleted = true;
+          }
+        }
+        // If no error, onAuthStateChange is expected to handle setting isLoading and the flag.
+      })
+      .catch(criticalError => { // Renamed error variable
+        console.error("Critical error in getSession promise chain:", criticalError);
+        // Critical Fallback:
+        if (!initialAuthCheckCompleted) {
+          setIsLoading(false);
+          initialAuthCheckCompleted = true;
+        }
+      });
 
-    return () => subscription.unsubscribe();
+    // Additional safety net for initial load:
+    // If after a short delay, onAuthStateChange hasn't completed the initial check, force isLoading to false.
+    const safetyNetTimeout = setTimeout(() => {
+      if (!initialAuthCheckCompleted) {
+        console.warn("AuthContext: Safety net triggered to set isLoading to false.");
+        setIsLoading(false);
+        initialAuthCheckCompleted = true;
+      }
+    }, 3000); // 3 seconds timeout
+
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(safetyNetTimeout);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {

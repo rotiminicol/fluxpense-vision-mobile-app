@@ -7,7 +7,8 @@ import {
   Camera, 
   Upload, 
   Mail,
-  X
+  X,
+  ArrowLeft
 } from 'lucide-react';
 import ExpenseManualEntry from './ExpenseManualEntry';
 import ExpenseCameraScanner from './ExpenseCameraScanner';
@@ -18,6 +19,7 @@ interface ExpenseEntryModalProps {
   isOpen: boolean;
   onClose: () => void;
   onExpenseAdded: () => void;
+  initialMethod?: EntryMethod;
 }
 
 type EntryMethod = 'selection' | 'manual' | 'scan' | 'upload' | 'email';
@@ -25,11 +27,22 @@ type EntryMethod = 'selection' | 'manual' | 'scan' | 'upload' | 'email';
 const ExpenseEntryModal: React.FC<ExpenseEntryModalProps> = ({ 
   isOpen, 
   onClose, 
-  onExpenseAdded 
+  onExpenseAdded,
+  initialMethod = 'selection'
 }) => {
-  const [currentMethod, setCurrentMethod] = useState<EntryMethod>('selection');
+  const [currentMethod, setCurrentMethod] = useState<EntryMethod>(initialMethod);
+
+  // Effect to update currentMethod if initialMethod changes while modal is open
+  React.useEffect(() => {
+    if (isOpen) {
+      setCurrentMethod(initialMethod);
+    }
+  }, [initialMethod, isOpen]);
 
   const handleClose = () => {
+    // Reset to selection only if it was the initial method or for explicit close.
+    // If opened directly to a method, closing should just close.
+    // However, for simplicity now, always reset to selection on explicit close action.
     setCurrentMethod('selection');
     onClose();
   };
@@ -99,34 +112,33 @@ const ExpenseEntryModal: React.FC<ExpenseEntryModalProps> = ({
             onExpenseAdded={onExpenseAdded}
           />
         );
-      default:
+      default: // Selection screen
         return (
-          <div className="space-y-4">
-            <div className="text-center mb-6">
-              <h3 className="text-lg font-semibold text-gray-800 mb-2">
-                How would you like to add this expense?
-              </h3>
-              <p className="text-sm text-gray-600">
-                Choose the method that works best for you
+          <div className="flex flex-col items-center justify-center h-full p-4">
+            <div className="text-center mb-8 sm:mb-12">
+              <h2 className="text-2xl sm:text-3xl font-bold text-slate-800 dark:text-slate-100 mb-3">
+                Add New Expense
+              </h2>
+              <p className="text-base sm:text-lg text-slate-600 dark:text-slate-300">
+                Choose your preferred method to record an expense.
               </p>
             </div>
             
-            <div className="grid grid-cols-1 gap-3">
+            <div className="w-full max-w-lg grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
               {methods.map((method) => (
-                <Button
+                <button
                   key={method.id}
-                  variant="outline"
-                  className="h-auto p-4 justify-start hover:bg-gray-50 border-2 hover:border-blue-200 transition-all"
+                  className={`p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out transform hover:-translate-y-1 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 dark:focus:ring-offset-slate-900 flex items-center space-x-4 text-left bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 hover:border-sky-300 dark:hover:border-sky-600`}
                   onClick={() => setCurrentMethod(method.id)}
                 >
-                  <div className={`w-10 h-10 ${method.color} rounded-lg flex items-center justify-center mr-4`}>
-                    <method.icon className="w-5 h-5 text-white" />
+                  <div className={`flex-shrink-0 w-12 h-12 ${method.color} rounded-lg flex items-center justify-center`}>
+                    <method.icon className="w-6 h-6 text-white" />
                   </div>
-                  <div className="text-left">
-                    <div className="font-medium text-gray-900">{method.title}</div>
-                    <div className="text-sm text-gray-500">{method.description}</div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">{method.title}</h3>
+                    <p className="text-sm text-slate-500 dark:text-slate-400">{method.description}</p>
                   </div>
-                </Button>
+                </button>
               ))}
             </div>
           </div>
@@ -151,36 +163,41 @@ const ExpenseEntryModal: React.FC<ExpenseEntryModalProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-md bg-white/95 backdrop-blur-xl border-0 shadow-2xl">
-        <DialogHeader>
+      <DialogContent
+        className="w-full h-full max-w-none max-h-none m-0 p-0 bg-gradient-to-br from-slate-50 to-sky-100 dark:from-slate-900 dark:to-sky-900 flex flex-col"
+        onInteractOutside={(e) => e.preventDefault()} // Optional: prevent closing on outside click if truly modal
+      >
+        <DialogHeader className="p-4 sm:p-6 border-b border-slate-200 dark:border-slate-700 sticky top-0 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md z-10">
           <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold text-gray-800">
-              {getTitle()}
-            </DialogTitle>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-3">
               {currentMethod !== 'selection' && (
                 <Button
                   variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={handleBack}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"
+                  aria-label="Back"
                 >
-                  Back
+                  <ArrowLeft className="w-5 h-5" />
                 </Button>
               )}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleClose}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              <DialogTitle className="text-lg sm:text-xl font-bold text-slate-800 dark:text-slate-100">
+                {getTitle()}
+              </DialogTitle>
             </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleClose}
+              className="text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700 rounded-full"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </Button>
           </div>
         </DialogHeader>
         
-        <div className="mt-4">
+        <div className="flex-1 overflow-y-auto p-4 sm:p-6">
           {renderContent()}
         </div>
       </DialogContent>
