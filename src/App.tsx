@@ -1,75 +1,64 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
-import { AuthProvider } from "./contexts/AuthContext";
-import BottomNavigation from "./components/BottomNavigation";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import LoginScreen from './pages/LoginScreen';
+import SignupScreen from './pages/SignupScreen';
+import ForgotPasswordScreen from './pages/ForgotPasswordScreen';
+import OnboardingScreen from './pages/OnboardingScreen';
+import Dashboard from './pages/Dashboard';
+import ExpensesPage from './pages/ExpensesPage';
+import TransactionsPage from './pages/TransactionsPage';
+import ReportsPage from './pages/ReportsPage';
+import ProfilePage from './pages/ProfilePage';
+import SettingsPage from './pages/SettingsPage';
+import NotificationsPage from './pages/NotificationsPage';
+import BillingPage from './pages/BillingPage';
+import HelpPage from './pages/HelpPage';
+import WelcomeScreen from './pages/WelcomeScreen';
+import NotFound from './pages/NotFound';
+import { Toaster } from '@/components/ui/toaster';
 
-// Pages
-import SplashScreen from "./pages/SplashScreen";
-import WelcomeScreen from "./pages/WelcomeScreen";
-import LoginScreen from "./pages/LoginScreen";
-import SignupScreen from "./pages/SignupScreen";
-import ForgotPasswordScreen from "./pages/ForgotPasswordScreen";
-import OnboardingScreen from "./pages/OnboardingScreen";
-import Dashboard from "./pages/Dashboard";
-import ExpensesPage from "./pages/ExpensesPage";
-import ReportsPage from "./pages/ReportsPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import BillingPage from "./pages/BillingPage";
-import HelpPage from "./pages/HelpPage";
-import TransactionsPage from "./pages/TransactionsPage";
-import SettingsPage from "./pages/SettingsPage";
-import ProfilePage from "./pages/ProfilePage";
-import NotFound from "./pages/NotFound";
-
-const queryClient = new QueryClient();
-
-function AppRoutesWithNav() {
-  const location = useLocation();
-  const hideNav = [
-    '/', '/welcome', '/login', '/signup', '/forgot-password', '/onboarding'
-  ];
-  const shouldShowNav = !hideNav.includes(location.pathname);
-  return (
-    <>
-      <Routes>
-        <Route path="/" element={<SplashScreen />} />
-        <Route path="/welcome" element={<WelcomeScreen />} />
-        <Route path="/login" element={<LoginScreen />} />
-        <Route path="/signup" element={<SignupScreen />} />
-        <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
-        <Route path="/onboarding" element={<OnboardingScreen />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/expenses" element={<ExpensesPage />} />
-        <Route path="/reports" element={<ReportsPage />} />
-        <Route path="/notifications" element={<NotificationsPage />} />
-        <Route path="/billing" element={<BillingPage />} />
-        <Route path="/help" element={<HelpPage />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
-        <Route path="/settings" element={<SettingsPage />} />
-        <Route path="/profile" element={<ProfilePage />} />
-        {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      {shouldShowNav && <BottomNavigation onQuickAdd={() => {}} />}
-    </>
-  );
+// A wrapper for <Route> that redirects to the login
+// screen if you're not yet authenticated.
+function ProtectedRoute({ children }: { children: React.ReactNode }) {
+  const auth = useAuth();
+  return auth.isAuthenticated ? children : <Navigate to="/login" />;
 }
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppRoutesWithNav />
-        </BrowserRouter>
-      </AuthProvider>
-    </TooltipProvider>
-  </QueryClientProvider>
-);
+import EmailVerificationPage from '@/pages/EmailVerificationPage';
+
+function App() {
+  return (
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="App">
+          <Toaster />
+          <Routes>
+            <Route path="/" element={<Navigate to="/welcome" replace />} />
+            <Route path="/welcome" element={<WelcomeScreen />} />
+            <Route path="/login" element={<LoginScreen />} />
+            <Route path="/signup" element={<SignupScreen />} />
+            <Route path="/forgot-password" element={<ForgotPasswordScreen />} />
+            <Route path="/verify-email" element={<EmailVerificationPage />} />
+            <Route path="/onboarding" element={<OnboardingScreen />} />
+            
+            {/* Protected Routes */}
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/expenses" element={<ProtectedRoute><ExpensesPage /></ProtectedRoute>} />
+            <Route path="/transactions" element={<ProtectedRoute><TransactionsPage /></ProtectedRoute>} />
+            <Route path="/reports" element={<ProtectedRoute><ReportsPage /></ProtectedRoute>} />
+            <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
+            <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
+            <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
+            <Route path="/billing" element={<ProtectedRoute><BillingPage /></ProtectedRoute>} />
+            <Route path="/help" element={<ProtectedRoute><HelpPage /></ProtectedRoute>} />
+            
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
+  );
+}
 
 export default App;

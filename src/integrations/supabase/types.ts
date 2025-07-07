@@ -157,17 +157,50 @@ export type Database = {
           },
         ]
       }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          is_read: boolean | null
+          message: string
+          title: string
+          type: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message: string
+          title: string
+          type?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_read?: boolean | null
+          message?: string
+          title?: string
+          type?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
           created_at: string
           currency: string | null
+          default_currency: string | null
           email: string | null
           full_name: string | null
           id: string
+          language: string | null
           monthly_budget: number | null
           onboarding_completed: boolean | null
           onboarding_data: Json | null
+          theme: string | null
           updated_at: string
           user_id: string
         }
@@ -175,12 +208,15 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           currency?: string | null
+          default_currency?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          language?: string | null
           monthly_budget?: number | null
           onboarding_completed?: boolean | null
           onboarding_data?: Json | null
+          theme?: string | null
           updated_at?: string
           user_id: string
         }
@@ -188,12 +224,15 @@ export type Database = {
           avatar_url?: string | null
           created_at?: string
           currency?: string | null
+          default_currency?: string | null
           email?: string | null
           full_name?: string | null
           id?: string
+          language?: string | null
           monthly_budget?: number | null
           onboarding_completed?: boolean | null
           onboarding_data?: Json | null
+          theme?: string | null
           updated_at?: string
           user_id?: string
         }

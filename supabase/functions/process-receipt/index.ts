@@ -1,96 +1,122 @@
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
-const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
+
+const MINDEE_API_KEY = Deno.env.get('MINDEE_API_KEY') || 'ed2d51a32022a48b2b8ef5e9670c7ef4'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+}
+
+interface MindeeResponse {
+  document?: {
+    inference?: {
+      prediction?: {
+        total_amount?: { value: number }[]
+        supplier_name?: { value: string }[]
+        date?: { value: string }[]
+        line_items?: Array<{
+          description?: string
+          total_amount?: number
+        }>
+      }
+    }
+  }
+}
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
+    return new Response('ok', { headers: corsHeaders })
   }
 
   try {
-    const { image } = await req.json();
+    const { imageUrl } = await req.json()
 
-    if (!image) {
-      throw new Error('No image provided');
+    if (!imageUrl) {
+      throw new Error('Image URL is required')
     }
 
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+    // Download image
+    const imageResponse = await fetch(imageUrl)
+    if (!imageResponse.ok) {
+      throw new Error('Failed to download image')
+    }
+
+    const imageBlob = await imageResponse.blob()
+    
+    // Prepare form data for Mindee
+    const formData = new FormData()
+    formData.append('document', imageBlob, 'receipt.jpg')
+
+    // Call Mindee Receipt OCR API
+    const mindeeResponse = await fetch('https://api.mindee.net/v1/products/mindee/expense_receipts/v5/predict', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
+        'Authorization': `Token ${MINDEE_API_KEY}`,
       },
-      body: JSON.stringify({
-        model: 'gpt-4.1-2025-04-14',
-        messages: [
-          {
-            role: 'system',
-            content: `You are a receipt analysis expert. Extract expense information from receipt images and return it as JSON.
+      body: formData,
+    })
 
-IMPORTANT: Only return valid JSON in this exact format:
-{
-  "amount": number,
-  "merchant": "string",
-  "date": "YYYY-MM-DD",
-  "category": "string",
-  "items": ["item1", "item2"],
-  "confidence": number between 0 and 1
-}
-
-Categories must be one of: "🍔 Food & Dining", "⛽ Transportation", "🛍️ Shopping", "🏠 Bills & Utilities", "🎬 Entertainment", "💊 Healthcare", "✈️ Travel", "📚 Education"
-
-If you cannot extract certain information, use reasonable defaults but indicate lower confidence.`
-          },
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'text',
-                text: 'Extract the expense information from this receipt image:'
-              },
-              {
-                type: 'image_url',
-                image_url: {
-                  url: image
-                }
-              }
-            ]
-          }
-        ],
-        max_tokens: 1000,
-      }),
-    });
-
-    if (!response.ok) {
-      throw new Error(`OpenAI API error: ${response.status}`);
+    if (!mindeeResponse.ok) {
+      const errorText = await mindeeResponse.text()
+      console.error('Mindee API error:', errorText)
+      throw new Error(`Mindee API error: ${mindeeResponse.status}`)
     }
 
-    const data = await response.json();
-    const extractedText = data.choices[0].message.content;
+    const mindeeResult: MindeeResponse = await mindeeResponse.json()
+    const prediction = mindeeResult.document?.inference?.prediction
 
-    // Parse the JSON response
-    let extractedData;
-    try {
-      extractedData = JSON.parse(extractedText);
-    } catch (e) {
-      throw new Error('Failed to parse extracted data');
+    if (!prediction) {
+      throw new Error('No prediction data received from Mindee')
     }
 
-    return new Response(JSON.stringify(extractedData), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    // Extract data from Mindee response
+    const amount = prediction.total_amount?.[0]?.value || null
+    const merchant = prediction.supplier_name?.[0]?.value || null
+    const date = prediction.date?.[0]?.value || null
+    const items = prediction.line_items?.map(item => ({
+      description: item.description,
+      amount: item.total_amount
+    })) || []
+
+    const result = {
+      amount,
+      merchant,
+      date,
+      items,
+      confidence: 0.8, // Mindee doesn't return confidence in v5, using default
+      raw: mindeeResult
+    }
+
+    return new Response(
+      JSON.stringify(result),
+      { 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    )
+
   } catch (error) {
-    console.error('Error in process-receipt function:', error);
-    return new Response(JSON.stringify({ error: error.message }), {
-      status: 500,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    console.error('Error processing receipt:', error)
+    
+    return new Response(
+      JSON.stringify({ 
+        error: error.message,
+        amount: null,
+        merchant: null,
+        date: null,
+        items: [],
+        confidence: 0
+      }),
+      { 
+        status: 500,
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json' 
+        } 
+      }
+    )
   }
-});
+})

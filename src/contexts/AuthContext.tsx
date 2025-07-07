@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js';
@@ -7,6 +8,7 @@ interface User {
   email: string;
   name: string;
   isFirstLogin?: boolean;
+  emailConfirmed?: boolean;
 }
 
 interface AuthContextType {
@@ -39,8 +41,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
+        console.log('Auth state changed:', event, session?.user?.email);
         setSession(session);
+        
         if (session?.user) {
+          // Create notification for login (except during signup)
+          if (event === 'SIGNED_IN' && session.user.email_confirmed_at) {
+            setTimeout(() => {
+              supabase.from('notifications').insert({
+                user_id: session.user.id,
+                title: 'Welcome back!',
+                message: `Welcome back to FluxPense, ${session.user.email}!`,
+                type: 'info'
+              });
+            }, 0);
+          }
+          
           // Check if user has completed onboarding
           const { data: profile } = await supabase
             .from('profiles')
@@ -52,7 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             id: session.user.id,
             email: session.user.email || '',
             name: profile?.full_name || session.user.email?.split('@')[0] || '',
-            isFirstLogin: !profile?.onboarding_completed
+            isFirstLogin: !profile?.onboarding_completed,
+            emailConfirmed: !!session.user.email_confirmed_at
           });
         } else {
           setUser(null);
@@ -87,7 +104,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const signup = async (email: string, password: string, name: string) => {
     setIsLoading(true);
     try {
-      const redirectUrl = `${window.location.origin}/`;
+      const redirectUrl = `${window.location.origin}/dashboard`;
       
       const { error } = await supabase.auth.signUp({
         email,
