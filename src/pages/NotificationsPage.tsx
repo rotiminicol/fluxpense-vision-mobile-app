@@ -1,67 +1,122 @@
+
 import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Switch } from '@/components/ui/switch';
 import { supabase } from '@/integrations/supabase/client';
+import { Bell, Check, Trash2, Settings } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
-import { 
-  Bell, 
-  BellOff, 
-  Settings, 
-  Trash2,
-  CheckCircle,
-  AlertTriangle,
-  Info,
-  DollarSign,
-  Calendar,
-  Receipt
-} from 'lucide-react';
 import fluxpenseLogo from '@/assets/fluxpense-logo.png';
 import { motion } from 'framer-motion';
 import BottomNavigation from '@/components/BottomNavigation';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  is_read: boolean;
+  created_at: string;
+}
 
 const NotificationsPage: React.FC = () => {
   const { user } = useAuth();
-  const [notifications, setNotifications] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      // For new users, just set empty notifications
-      setNotifications([]);
-      setLoading(false);
+      fetchNotifications();
     }
   }, [user]);
 
-  const [notificationSettings, setNotificationSettings] = useState({
-    budgetAlerts: true,
-    expenseReminders: true,
-    weeklyReports: false,
-    goalAchievements: true,
-    receiptReminders: true
-  });
+  const fetchNotifications = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user?.id)
+        .order('created_at', { ascending: false });
 
-  const markAsRead = (id: string) => {
-    setNotifications(prev => 
-      prev.map(notif => 
-        notif.id === id ? { ...notif, read: true } : notif
-      )
+      if (error) throw error;
+      setNotifications(data || []);
+    } catch (error) {
+      console.error('Error fetching notifications:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const markAsRead = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ is_read: true })
+        .eq('id', notificationId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      setNotifications(prev => 
+        prev.map(notif => 
+          notif.id === notificationId 
+            ? { ...notif, is_read: true }
+            : notif
+        )
+      );
+    } catch (error) {
+      console.error('Error marking notification as read:', error);
+    }
+  };
+
+  const deleteNotification = async (notificationId: string) => {
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId)
+        .eq('user_id', user?.id);
+
+      if (error) throw error;
+      
+      setNotifications(prev => prev.filter(notif => notif.id !== notificationId));
+    } catch (error) {
+      console.error('Error deleting notification:', error);
+    }
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'welcome':
+        return '👋';
+      case 'login':
+        return '🔑';
+      case 'expense':
+        return '💰';
+      case 'achievement':
+        return '🏆';
+      default:
+        return 'ℹ️';
+    }
+  };
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
+    
+    if (diffInHours < 1) return 'Just now';
+    if (diffInHours < 24) return `${diffInHours}h ago`;
+    if (diffInHours < 48) return 'Yesterday';
+    return date.toLocaleDateString();
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-surface flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500"></div>
+      </div>
     );
-  };
-
-  const deleteNotification = (id: string) => {
-    setNotifications(prev => prev.filter(notif => notif.id !== id));
-  };
-
-  const markAllAsRead = () => {
-    setNotifications(prev => 
-      prev.map(notif => ({ ...notif, read: true }))
-    );
-  };
-
-  const unreadCount = notifications.filter(n => !n.read).length;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-surface pb-20 flex flex-col">
@@ -74,174 +129,94 @@ const NotificationsPage: React.FC = () => {
             </div>
             <div className="flex flex-col justify-center">
               <span className="text-base font-extrabold text-blue-700 leading-tight">Notifications</span>
-              <span className="text-xs text-muted-foreground mt-0.5">{loading ? 'Loading...' : notifications.length === 0 ? 'No notifications' : `${unreadCount} unread notifications`}</span>
+              <span className="text-xs text-muted-foreground mt-0.5">
+                {notifications.filter(n => !n.is_read).length} unread
+              </span>
             </div>
           </div>
-          {/* Notification Dropdown */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <button className="relative p-1.5 rounded-full hover:bg-blue-100 transition-colors focus:outline-none">
-                <Bell className="w-5 h-5 text-blue-600" />
-                {unreadCount > 0 && <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-primary rounded-full text-[10px] text-white flex items-center justify-center">{unreadCount}</span>}
-              </button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64 bg-white/90 backdrop-blur-xl rounded-xl shadow-xl mt-2">
-              <div className="p-2 border-b">
-                <h4 className="font-semibold text-sm">Notifications</h4>
-              </div>
-              <div className="max-h-48 overflow-y-auto">
-                {notifications.length === 0 ? (
-                  <div className="text-center text-muted-foreground py-4 text-sm">
-                    No notifications yet
-                  </div>
-                ) : (
-                  notifications.slice(0, 3).map((notif) => (
-                    <DropdownMenuItem key={notif.id} className="flex items-start space-x-2 p-2">
-                      <notif.icon className={`w-4 h-4 ${notif.color} mt-1`} />
-                      <div>
-                        <p className="text-xs font-medium">{notif.title}</p>
-                        <p className="text-[11px] text-muted-foreground">{notif.message}</p>
-                      </div>
-                    </DropdownMenuItem>
-                  ))
-                )}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+          <Button variant="outline" size="sm" className="bg-white/80">
+            <Settings className="w-4 h-4" />
+          </Button>
         </div>
       </div>
-      <main className="flex-1 overflow-y-auto relative z-10 pb-8 px-2 pt-2 max-w-md mx-auto w-full">
-        {/* Notification Settings */}
-        <Card className="bg-white/80 backdrop-blur rounded-xl shadow p-3 mb-4">
-          <CardHeader className="pb-2 px-0">
-            <CardTitle className="flex items-center space-x-2 text-base">
-              <Settings className="w-5 h-5" />
-              <span>Notification Settings</span>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-0 pt-0 pb-1">
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Budget Alerts</p>
-                  <p className="text-sm text-muted-foreground">Get notified when approaching budget limits</p>
-                </div>
-                <Switch
-                  checked={notificationSettings.budgetAlerts}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, budgetAlerts: checked }))
-                  }
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Expense Reminders</p>
-                  <p className="text-sm text-muted-foreground">Reminders to log daily expenses</p>
-                </div>
-                <Switch
-                  checked={notificationSettings.expenseReminders}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, expenseReminders: checked }))
-                  }
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Weekly Reports</p>
-                  <p className="text-sm text-muted-foreground">Weekly spending summary reports</p>
-                </div>
-                <Switch
-                  checked={notificationSettings.weeklyReports}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, weeklyReports: checked }))
-                  }
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Goal Achievements</p>
-                  <p className="text-sm text-muted-foreground">Celebrate when you reach savings goals</p>
-                </div>
-                <Switch
-                  checked={notificationSettings.goalAchievements}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, goalAchievements: checked }))
-                  }
-                />
-              </div>
-              
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="font-medium">Receipt Reminders</p>
-                  <p className="text-sm text-muted-foreground">Reminders to scan receipts</p>
-                </div>
-                <Switch
-                  checked={notificationSettings.receiptReminders}
-                  onCheckedChange={(checked) => 
-                    setNotificationSettings(prev => ({ ...prev, receiptReminders: checked }))
-                  }
-                />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-        {/* Notifications List */}
-        <div className="space-y-3">
-            {loading && (
-              <div className="text-center text-muted-foreground py-8">Loading notifications...</div>
-            )}
-            {!loading && notifications.length === 0 && (
-              <div className="text-center text-muted-foreground py-8">
-                <Bell className="w-12 h-12 mx-auto mb-4 text-muted-foreground/50" />
-                <p className="text-lg font-semibold mb-2">No notifications yet</p>
-                <p className="text-sm">When you have notifications, they'll appear here</p>
-              </div>
-            )}
-            {!loading && notifications.map((notif, idx) => (
-            <motion.div
-              key={notif.id}
-              initial={{ opacity: 0, x: 40 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: idx * 0.08, duration: 0.4 }}
-            >
-              <Card className={`flex flex-row items-center bg-white/90 backdrop-blur rounded-xl shadow p-3 ${!notif.read ? 'border-l-4 border-blue-400' : ''}`}>
-                <notif.icon className={`w-6 h-6 ${notif.color} flex-shrink-0`} />
-                <div className="flex-1 min-w-0 ml-3">
-                  <div className="flex items-center gap-2">
-                    <span className={`font-semibold text-sm truncate ${!notif.read ? 'text-blue-700' : 'text-foreground'}`}>{notif.title}</span>
-                    {!notif.read && <Badge variant="secondary" className="text-xs">New</Badge>}
-                  </div>
-                  <span className="block text-xs text-muted-foreground truncate">{notif.message}</span>
-                  <span className="block text-[11px] text-muted-foreground mt-0.5">{notif.time}</span>
-                </div>
-                <div className="flex flex-col items-end gap-1 ml-3 flex-shrink-0">
-                  {!notif.read && (
-                    <Button size="sm" variant="ghost" className="px-2 py-0.5 text-xs" onClick={() => markAsRead(notif.id)}>
-                      <CheckCircle className="w-4 h-4 mr-1" />
-                      Read
-                    </Button>
-                  )}
-                  <Button size="sm" variant="ghost" className="px-2 py-0.5 text-xs text-destructive" onClick={() => deleteNotification(notif.id)}>
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
-              </Card>
-            </motion.div>
+
+      <main className="flex-1 overflow-y-auto relative z-10 pb-4 px-4 pt-2 max-w-md mx-auto w-full">
+        {notifications.length === 0 ? (
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }} 
+            animate={{ opacity: 1, y: 0 }} 
+            className="flex flex-col items-center justify-center min-h-[400px] text-center"
+          >
+            <Bell className="w-16 h-16 text-blue-300 mb-4" />
+            <h3 className="text-lg font-semibold text-blue-700 mb-2">No Notifications Yet</h3>
+            <p className="text-muted-foreground px-4">
+              You'll see important updates and activity notifications here.
+            </p>
+          </motion.div>
+        ) : (
+          <div className="space-y-2">
+            {notifications.map((notification, index) => (
+              <motion.div
+                key={notification.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: index * 0.1 }}
+              >
+                <Card className={`bg-white/80 backdrop-blur transition-all ${
+                  !notification.is_read ? 'border-l-4 border-l-blue-500' : ''
+                }`}>
+                  <CardContent className="p-3">
+                    <div className="flex items-start gap-3">
+                      <div className="text-lg">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <h4 className={`text-sm font-semibold ${
+                              !notification.is_read ? 'text-blue-700' : 'text-gray-700'
+                            }`}>
+                              {notification.title}
+                            </h4>
+                            <p className="text-xs text-muted-foreground mt-1">
+                              {notification.message}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-2">
+                              {formatDate(notification.created_at)}
+                            </p>
+                          </div>
+                          <div className="flex gap-1">
+                            {!notification.is_read && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
+                                onClick={() => markAsRead(notification.id)}
+                              >
+                                <Check className="w-3 h-3" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-6 w-6 p-0 text-red-500 hover:text-red-700"
+                              onClick={() => deleteNotification(notification.id)}
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </motion.div>
             ))}
-        </div>
+          </div>
+        )}
       </main>
-      {/* Bottom Navigation */}
-      <motion.div
-        initial={{ y: 80, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.4, type: 'spring' }}
-        className="z-50"
-      >
-        <BottomNavigation onQuickAdd={() => {}} />
-      </motion.div>
+
+      <BottomNavigation onQuickAdd={() => {}} />
     </div>
   );
 };
